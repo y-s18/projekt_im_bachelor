@@ -1,0 +1,71 @@
+[ NORMAL  ]  ##   Please press ENTER to start the tournament.
+[ NORMAL  ]  ##   Configuring random seed: 17
+[ NORMAL  ]  ##   config.randomFail: 0
+[ NORMAL  ]  ##   config.attachLimit: 10
+[ NORMAL  ]  ##   config.clearSteps: 3
+[ NORMAL  ]  ##   config.clusterBounds: 2, 3
+[ NORMAL  ]  ##   config.clearEnergyCost: 30
+[ NORMAL  ]  ##   config.disableDuration: 4
+[ NORMAL  ]  ##   config.maxEnergy: 300
+[ NORMAL  ]  ##   config.blockTypes: [1,2] -> 2
+[ NORMAL  ]  ##   config.dispensersBounds: [5,10]
+[ NORMAL  ]  ##   config.tasks.duration: [200,200]
+[ NORMAL  ]  ##   config.tasks.size: [1,1]
+[ NORMAL  ]  ##   config.tasks.rewardDecay: [1,2]
+[ NORMAL  ]  ##   config.tasks.probability: 0.05
+[ NORMAL  ]  ##   config.taskboards: 3
+[ NORMAL  ]  ##   config.distanceToTaskboards: 8
+[ NORMAL  ]  ##   config.tasks.lowerRewardLimit: 10
+[ NORMAL  ]  ##   config.events.chance: 0
+[ NORMAL  ]  ##   config.events.radius: 3 - 5
+[ NORMAL  ]  ##   config.events.warning: 5
+[ NORMAL  ]  ##   config.events.create: -3 - 1
+[ NORMAL  ]  ##   config.events.perimeter: 2
+[ NORMAL  ]  ##   Created dispenser(49,38,b0)
+[ NORMAL  ]  ##   Created dispenser(1,10,b0)
+[ NORMAL  ]  ##   Created dispenser(26,42,b0)
+[ NORMAL  ]  ##   Created dispenser(9,3,b0)
+[ NORMAL  ]  ##   Created dispenser(9,36,b0)
+[ NORMAL  ]  ##   Created dispenser(37,25,b0)
+[ NORMAL  ]  ##   Created dispenser(26,43,b0)
+[ NORMAL  ]  ##   Created dispenser(23,49,b0)
+[ NORMAL  ]  ##   Created dispenser(35,30,b0)
+[ NORMAL  ]  ##   Created dispenser(9,7,b0)
+[ NORMAL  ]  ##   Created dispenser(14,11,b1)
+[ NORMAL  ]  ##   Created dispenser(42,1,b1)
+[ NORMAL  ]  ##   Created dispenser(0,35,b1)
+[ NORMAL  ]  ##   Created dispenser(6,7,b1)
+[ NORMAL  ]  ##   Created dispenser(28,33,b1)
+[ NORMAL  ]  ##   Created dispenser(25,43,b1)
+[ NORMAL  ]  ##   Created dispenser(8,45,b1)
+[ NORMAL  ]  ##   Created dispenser(14,39,b1)
+[ NORMAL  ]  ##   Created dispenser(20,46,b1)
+[ NORMAL  ]  ##   Created dispenser(2,18,b1)
+[ NORMAL  ]  ##   Created Taskboard(9,22)
+[ NORMAL  ]  ##   Created Taskboard(35,13)
+[ NORMAL  ]  ##   Created Taskboard(31,19)
+[ NORMAL  ]  ##   Simulation at step 0
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   Simulation at step 1
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   Simulation at step 2
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   Simulation at step 3
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   Simulation at step 4
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   Simulation at step 5
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   Simulation at step 6
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   Simulation at step 7
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   Simulation at step 8
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   Simulation at step 9
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   Simulation at step 10
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   Simulation at step 11
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   Simulation at step 12

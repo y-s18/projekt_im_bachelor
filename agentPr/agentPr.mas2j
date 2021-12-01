@@ -1,0 +1,11 @@
+MAS agentPr {
+
+	infrastructure: Centralised
+	environment: jason.eis.EISAdapter
+	agents:
+		agent;
+		
+
+	aslSourcePath:
+		"src/asl";
+}

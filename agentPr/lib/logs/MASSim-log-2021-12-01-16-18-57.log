@@ -1,0 +1,65 @@
+[ NORMAL  ]  ##   Please press ENTER to start the tournament.
+[ NORMAL  ]  ##   Configuring random seed: 17
+[ NORMAL  ]  ##   config.randomFail: 0
+[ NORMAL  ]  ##   config.attachLimit: 10
+[ NORMAL  ]  ##   config.clearSteps: 3
+[ NORMAL  ]  ##   config.clusterBounds: 2, 3
+[ NORMAL  ]  ##   config.clearEnergyCost: 30
+[ NORMAL  ]  ##   config.disableDuration: 4
+[ NORMAL  ]  ##   config.maxEnergy: 300
+[ NORMAL  ]  ##   config.blockTypes: [1,2] -> 2
+[ NORMAL  ]  ##   config.dispensersBounds: [5,10]
+[ NORMAL  ]  ##   config.tasks.duration: [200,200]
+[ NORMAL  ]  ##   config.tasks.size: [1,1]
+[ NORMAL  ]  ##   config.tasks.rewardDecay: [1,2]
+[ NORMAL  ]  ##   config.tasks.probability: 0.05
+[ NORMAL  ]  ##   config.taskboards: 3
+[ NORMAL  ]  ##   config.distanceToTaskboards: 8
+[ NORMAL  ]  ##   config.tasks.lowerRewardLimit: 10
+[ NORMAL  ]  ##   config.events.chance: 0
+[ NORMAL  ]  ##   config.events.radius: 3 - 5
+[ NORMAL  ]  ##   config.events.warning: 5
+[ NORMAL  ]  ##   config.events.create: -3 - 1
+[ NORMAL  ]  ##   config.events.perimeter: 2
+[ NORMAL  ]  ##   Created dispenser(40,1,b0)
+[ NORMAL  ]  ##   Created dispenser(10,26,b0)
+[ NORMAL  ]  ##   Created dispenser(42,7,b0)
+[ NORMAL  ]  ##   Created dispenser(3,9,b0)
+[ NORMAL  ]  ##   Created dispenser(36,37,b0)
+[ NORMAL  ]  ##   Created dispenser(25,26,b0)
+[ NORMAL  ]  ##   Created dispenser(43,23,b0)
+[ NORMAL  ]  ##   Created dispenser(49,35,b0)
+[ NORMAL  ]  ##   Created dispenser(34,9,b0)
+[ NORMAL  ]  ##   Created dispenser(7,33,b0)
+[ NORMAL  ]  ##   Created dispenser(12,42,b1)
+[ NORMAL  ]  ##   Created dispenser(1,44,b1)
+[ NORMAL  ]  ##   Created dispenser(34,6,b1)
+[ NORMAL  ]  ##   Created dispenser(7,28,b1)
+[ NORMAL  ]  ##   Created dispenser(33,25,b1)
+[ NORMAL  ]  ##   Created Taskboard(43,8)
+[ NORMAL  ]  ##   Created Taskboard(45,14)
+[ NORMAL  ]  ##   Created Taskboard(39,20)
+[ NORMAL  ]  ##   Simulation at step 0
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   No valid action available in time for agent agentA2.
+[ NORMAL  ]  ##   Simulation at step 1
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   No valid action available in time for agent agentA2.
+[ NORMAL  ]  ##   Simulation at step 2
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   No valid action available in time for agent agentA2.
+[ NORMAL  ]  ##   Simulation at step 3
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   No valid action available in time for agent agentA2.
+[ NORMAL  ]  ##   Simulation at step 4
+[ NORMAL  ]  ##   No valid action available in time for agent agentA2.
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   Simulation at step 5
+[ NORMAL  ]  ##   No valid action available in time for agent agentA2.
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   Simulation at step 6
+[ NORMAL  ]  ##   You typed: pause
+[ NORMAL  ]  ##   No valid action available in time for agent agentA2.
+[ NORMAL  ]  ##   No valid action available in time for agent agentA1.
+[ NORMAL  ]  ##   Simulation at step 7
+[ NORMAL  ]  ##   Simulation paused. Type further commands or 'continue' to proceed.
