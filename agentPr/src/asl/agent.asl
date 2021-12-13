@@ -14,6 +14,9 @@ searching(true).
 movingTowards(false).
 lastDirection(nw). 
 distcount(1). 
+hasTask(false).
+b0(0,0).
+b1(0,0).
 
 /* Initial goals */
 
@@ -90,31 +93,50 @@ distcount(1).
 		?lastDirection(Dir);
 		?distcount(Dist);
 		if (Dir = nw){
-    		!goto(X+5*Dist,Y-5*Dist);
+    		!goto(X+3*Dist,Y-3*Dist);
     		-+lastDirection(ne);
 		}
  		if (Dir = ne){
 			-+distcount(Dist+1);
-    		!goto(X+5*Dist,Y+5*Dist);
+    		!goto(X+3*Dist,Y+3*Dist);
     		-+lastDirection(se);
 		}
 		if (Dir = se){
-    		!goto(X-5*Dist,Y+5*Dist);
+    		!goto(X-3*Dist,Y+3*Dist);
     		-+lastDirection(sw);
 		}
 		if (Dir = sw){
     		-+distcount(Dist+1);
-    		!goto(X-5*Dist,Y-5*Dist);
+    		!goto(X-3*Dist,Y-3*Dist);
     		-+lastDirection(nw);
  		}
 //		!spiral;
 	}
+//	if(thing(XB,YB,dispenser,b0)){
+//		//?thing(XB,YB,dispenser,b0);
+//		?myposition(XAg, YAg);
+//		-+b0(XAg+XB, YAg+YB);
+//	}
+//	
+//	if(thing(XB1,YB1,dispenser,b1)){
+//		//?thing(XB,YB,dispenser,b0);
+//		?myposition(XAg, YAg);
+//		-+b1(XAg+XB1, YAg+YB1);
+//	}
+	
 	if(thing(_,_,taskboard,_)){
 //			-+searching(false);
 		?thing(XT,YT,taskboard,_);
 		?myposition(XA,YA);
 		!goto(XA+XT,YA+YT);
-		accept(_);
+		if(task(T,_,_,_) & hasTask(false) & myposition(XA+XT,YA+YT)){
+			
+			-+hasTask(true);
+			accept(T);
+			
+			
+		}
+		
 	}
     -+searching(true);
     .
