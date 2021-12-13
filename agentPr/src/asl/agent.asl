@@ -10,6 +10,10 @@ directionIncrement(n, 0, -1).
 directionIncrement(w,-1,  0).
 directionIncrement(e, 1,  0).
 myposition(37,30).
+searching(true).
+movingTowards(false).
+lastDirection(nw). 
+distcount(1). 
 
 /* Initial goals */
 
@@ -26,7 +30,11 @@ myposition(37,30).
 //+step(6)<- !spiral.
 
 /* start moving to a given position */
-+step(X): true <- !goto(31,19).
++step(X): searching(true) <- !spiral; .
++step(X): movingTowards(true) <- !goto(31,19).
+
+
+
 
 //+!start <- if(lastAction(move) & lastActionResult(success)) {!spiral;}.
 
@@ -56,10 +64,60 @@ myposition(37,30).
       !goto(X,Y);
       .
 /* first try for spiral movement */
-+!spiral<- 
-	?myposition(X,Y);
-	!goto(X-2,Y+1);
-	.
+//+!spiral: searching(true)<- 
+//	-+searching(false);
+//	?myposition(X,Y);
+//	if(not thing(_,_,taskboard,_)){
+//		!goto(X-1,Y-1);	
+////		!spiral;
+//	}
+//	if(thing(_,_,taskboard,_)){
+////		-+searching(false);
+//		?thing(XT,YT,taskboard,_);
+//		?myposition(XA,YA);
+//		!goto(XA+XT,YA+YT);
+//	}
+//	-+searching(true);
+////	!goto(X-2,Y+1);
+////	-+searching(true);
+////	!spiral;
+//	.
+
++!spiral: searching(true) <- 
+    -+searching(false);
+    ?myposition(X,Y);
+	if(not thing(_,_,taskboard,_)){
+		?lastDirection(Dir);
+		?distcount(Dist);
+		if (Dir = nw){
+    		!goto(X+5*Dist,Y-5*Dist);
+    		-+lastDirection(ne);
+		}
+ 		if (Dir = ne){
+			-+distcount(Dist+1);
+    		!goto(X+5*Dist,Y+5*Dist);
+    		-+lastDirection(se);
+		}
+		if (Dir = se){
+    		!goto(X-5*Dist,Y+5*Dist);
+    		-+lastDirection(sw);
+		}
+		if (Dir = sw){
+    		-+distcount(Dist+1);
+    		!goto(X-5*Dist,Y-5*Dist);
+    		-+lastDirection(nw);
+ 		}
+//		!spiral;
+	}
+	if(thing(_,_,taskboard,_)){
+//			-+searching(false);
+		?thing(XT,YT,taskboard,_);
+		?myposition(XA,YA);
+		!goto(XA+XT,YA+YT);
+		accept(_);
+	}
+    -+searching(true);
+    .
 
 //+step(0)<- move(w).
 //+step(X): moving(false) <- !start.
