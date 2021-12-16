@@ -14,6 +14,7 @@ distcount(1).
 hasTask(false).
 b0(0,0).
 b1(0,0).
+g(0,0).
 foundTB(false).
 
 
@@ -117,8 +118,48 @@ foundTB(false).
 				?myposition(XAg, YAg);
 				-+b1(XAg+XB1, YAg+YB1);
 			}
+			if(goal(XG,YG)){
+				?myposition(XAg,YAg);
+				-+g(XAg+XG,YAg+YG);
+			}
 		  	!goto(X,Y);
       	}
+      }
+      elif(hasTask(true)){move(DIRECTION);.wait(350);
+		  	if(lastAction(move) & lastActionResult(success)){	
+		  	NewX = OX+DESIRABLEX;
+		  	NewY = OY+DESIRABLEY;
+		  	
+		  	if(NewX <= 49 & NewX >= 0 & NewY <= 49 & NewY >= 0){
+		  		NewX1 = NewX;NewY1 = NewY;
+		  	}
+			elif(NewX <= 49 & NewX >=0){NewX1 = NewX;}
+			elif(NewY <= 49 & NewY >=0){NewY1 = NewY;}
+			
+			if(NewX > 49){NewX1 = NewX-50;}
+		  	elif(NewX < 0){NewX1 = NewX+50;}
+		  	
+		  	if(NewY > 49){NewY1 = NewY-50;}
+		  	elif(NewY < 0){NewY1 = NewY+50;}
+		  	
+
+		  	-+myposition(NewX1,NewY1);
+		  	
+//	  		if(thing(XB,YB,dispenser,b0)){
+//				?myposition(XAg, YAg);
+//				-+b0(XAg+XB, YAg+YB);
+//			}
+//			if(thing(XB1,YB1,dispenser,b1)){
+//				?myposition(XAg, YAg);
+//				-+b1(XAg+XB1, YAg+YB1);
+//			}
+//			if(goal(XG,YG)){
+//				?myposition(XAg,YAg);
+//				-+g(XAg+XG,YAg+YG);
+//			}
+		  	!goto(X,Y);
+      	}
+      	
       }
       
       
@@ -129,9 +170,15 @@ foundTB(false).
 //	if(movingTowards(false)){!goto(X,Y);}
       
       .
++!doTask <- ?accepted(T); ?task(T,_,_,[req(_,_,Disp)]);
+	if(Disp = b0){?b0(XB,YB) if(XB =0& YB =0){!spiral;}else{!goto(XB,YB-1);request(s);attach(s);?g(XG,YG);!goto(XG,YG);submit(T);}}
+	if(Disp = b1){?b1(XB,YB) if(XB =0& YB =0){!spiral;}else{!goto(XB,YB-1);request(s);attach(s);?g(XG,YG);!goto(XG,YG);submit(T);}}
+.
 
 +!spiral: searching(true) <- 
     -+searching(false);
+    ?distcount(C);
+    if(C>4){-+distcount(1)}
     
     SpStep = 2;
 //    ?myposition(X,Y);
@@ -157,7 +204,7 @@ foundTB(false).
 	  	!goto(NewXne1,NewYne1);
 //		-+lastDirection(ne);
 		-+distcount(Distne+1);
-	}else{?task(T,_,_,_);accept(T); -+hasTask(true); -+foundTB(false);}
+	}elif(thing(0,0,taskboard,_) & hasTask(false)){?task(T,_,_,_);accept(T); -+hasTask(true); -+foundTB(false);}
 	
 	if(not thing(0,0,taskboard,_) & hasTask(false)){
 		?myposition(Xse,Yse);
@@ -179,7 +226,7 @@ foundTB(false).
 
 	  	!goto(NewXse1,NewYse1);
 //		-+lastDirection(se);
-	}else{?task(T,_,_,_);accept(T); -+hasTask(true); -+foundTB(false);}
+	}elif(thing(0,0,taskboard,_) & hasTask(false)){?task(T,_,_,_);accept(T); -+hasTask(true); -+foundTB(false);}
 		
 	if(not thing(0,0,taskboard,_) & hasTask(false)){
 		?myposition(Xsw,Ysw);
@@ -202,7 +249,7 @@ foundTB(false).
 	  	!goto(NewXsw1,NewYsw1);
 //		-+lastDirection(sw);
 		-+distcount(Distsw+1);
-	}else{?task(T,_,_,_);accept(T); -+hasTask(true); -+foundTB(false);}
+	}elif(thing(0,0,taskboard,_) & hasTask(false)){?task(T,_,_,_);accept(T); -+hasTask(true); -+foundTB(false);}
 		
 	if(not thing(0,0,taskboard,_) & hasTask(false)){
 		?myposition(Xnw,Ynw);
@@ -224,7 +271,10 @@ foundTB(false).
 	  	
 	  	!goto(NewXnw1,NewYnw1);
 //		-+lastDirection(nw);
-	}else{?task(T,_,_,_);accept(T); -+hasTask(true); -+foundTB(false);}
+	}elif(thing(0,0,taskboard,_) & hasTask(false)){?task(T,_,_,_);accept(T); -+hasTask(true); -+foundTB(false);}
+	if(hasTask(true)){
+		!doTask;
+	}
 	-+searching(true);
 
 	
