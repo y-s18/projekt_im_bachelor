@@ -4,7 +4,7 @@
 
 /* Initial goals */
 
-myPos(0,0).
+//myPos(0,0).
 isMoving(false).
 isSearching(true).
 distCount(1).
@@ -15,160 +15,52 @@ directionIncrement(e, 1,  0).
 nextDir(ne).
 changeDir(false).
 desXY(0,0).
-spiStep(1).
+spiStep(3).
 
 /* Plans */
 
-+step(0)<- ?position(X,Y); -+myPos(X,Y);.
-
 +!calcDesXY(D) <- ?spiStep(S);
-	?myPos(Xne,Yne);
-	?distCount(Distne);
+	?position(X,Y);
+	?distCount(Dist);
 	if(D=ne){
-		NewXne = Xne+S*Distne;
-		NewYne = Yne-S*Distne;
-		-+distCount(Distne+1);
+		NewX = X+S*Dist;
+		NewY = Y-S*Dist;
+		-+distCount(Dist+1);
 	}elif(D=se){
-		NewXne = Xne+S*Distne;
-		NewYne = Yne+S*Distne;
+		NewX = X+S*Dist;
+		NewY = Y+S*Dist;
 	}elif(D=sw){
-		NewXne = Xne-S*Distne;
-		NewYne = Yne+S*Distne;
-		-+distCount(Distne+1);
+		NewX = X-S*Dist;
+		NewY = Y+S*Dist;
+		-+distCount(Dist+1);
 	}elif(D=nw){
-		NewXne = Xne-S*Distne;
-		NewYne = Yne-S*Distne;
+		NewX = X-S*Dist;
+		NewY = Y-S*Dist;
 	}
-	if(NewXne <= 49 & NewXne >= 0 & NewYne <= 49 & NewYne >= 0){NewXne1 = NewXne;NewYne1 = NewYne;}
-	elif(NewXne <= 49 & NewXne >=0){NewXne1 = NewXne;}
-	elif(NewYne <= 49 & NewYne >=0){NewYne1 = NewYne;}
+	if(NewX <= 49 & NewX >= 0 & NewY <= 49 & NewY >= 0){NewX1 = NewX;NewY1 = NewY;}
+	elif(NewX <= 49 & NewX >=0){NewX1 = NewX;}
+	elif(NewY <= 49 & NewY >=0){NewY1 = NewY;}
 	
-	if(NewXne > 49){NewXne1 = NewXne-50;}
-  	elif(NewXne < 0){NewXne1 = NewXne+50;}
+	if(NewX > 49){NewX1 = NewX-50;}
+  	elif(NewX < 0){NewX1 = NewX+50;}
   	
-  	if(NewYne > 49){NewYne1 = NewYne-50;}
-  	elif(NewYne < 0){NewYne1 = NewYne+50;}
-	-+desXY(NewXne1,NewYne1);
+  	if(NewY > 49){NewY1 = NewY-50;}
+  	elif(NewY < 0){NewY1 = NewY+50;}
+	-+desXY(NewX1,NewY1);
 	-+isMoving(true); 
 	.
 
 +step(X): isMoving(false) & isSearching(true)
 	<- 
-//	SpStep = 2;
 	?nextDir(D);
 	!calcDesXY(D);
-//	?spiStep(S);
-//	?myPos(Xne,Yne);
-////	?lastDirection(Dir);
-//	?distCount(Distne);
-//	NewXne = Xne+S*Distne;
-//	NewYne = Yne-S*Distne;
-//	
-//	if(NewXne <= 49 & NewXne >= 0 & NewYne <= 49 & NewYne >= 0){NewXne1 = NewXne;NewYne1 = NewYne;}
-//	elif(NewXne <= 49 & NewXne >=0){NewXne1 = NewXne;}
-//	elif(NewYne <= 49 & NewYne >=0){NewYne1 = NewYne;}
-//	
-//	if(NewXne > 49){NewXne1 = NewXne-50;}
-//  	elif(NewXne < 0){NewXne1 = NewXne+50;}
-//  	
-//  	if(NewYne > 49){NewYne1 = NewYne-50;}
-//  	elif(NewYne < 0){NewYne1 = NewYne+50;}
-//
-////  	!goto(NewXne1,NewYne1);
-//	-+desXY(NewXne1,NewYne1);
-////  	if(myPos(NewXne1, NewYne1)){-+changeDir(true)}
-////  	!goto; 
-//	-+distCount(Distne+1);
-//  	-+isMoving(true); 
   	.
   	
-//+step(X): isMoving(false) & nextDir(se) & isSearching(true)
-//	<- 
-////	SpStep = 2;
-//	?spiStep(S);
-//	?myPos(Xne,Yne);
-////	?lastDirection(Dir);
-//	?distCount(Distne);
-//	NewXne = Xne+S*Distne;
-//	NewYne = Yne+S*Distne;
-//	
-//	if(NewXne <= 49 & NewXne >= 0 & NewYne <= 49 & NewYne >= 0){NewXne1 = NewXne;NewYne1 = NewYne;}
-//	elif(NewXne <= 49 & NewXne >=0){NewXne1 = NewXne;}
-//	elif(NewYne <= 49 & NewYne >=0){NewYne1 = NewYne;}
-//	
-//	if(NewXne > 49){NewXne1 = NewXne-50;}
-//  	elif(NewXne < 0){NewXne1 = NewXne+50;}
-//  	
-//  	if(NewYne > 49){NewYne1 = NewYne-50;}
-//  	elif(NewYne < 0){NewYne1 = NewYne+50;}
-//
-////  	!goto(NewXne1,NewYne1);
-//  	-+desXY(NewXne1,NewYne1);
-////  	if(myPos(NewXne1, NewYne1)){-+changeDir(true)}
-////  	!goto; 
-//  	-+isMoving(true); 
-//  	.
-  	
-//+step(X): isMoving(false) & nextDir(sw) & isSearching(true)
-//	<- 
-////	SpStep = 2;
-//	?spiStep(S);
-//	?myPos(Xne,Yne);
-////	?lastDirection(Dir);
-//	?distCount(Distne);
-//	NewXne = Xne-S*Distne;
-//	NewYne = Yne+S*Distne;
-//	
-//	if(NewXne <= 49 & NewXne >= 0 & NewYne <= 49 & NewYne >= 0){NewXne1 = NewXne;NewYne1 = NewYne;}
-//	elif(NewXne <= 49 & NewXne >=0){NewXne1 = NewXne;}
-//	elif(NewYne <= 49 & NewYne >=0){NewYne1 = NewYne;}
-//	
-//	if(NewXne > 49){NewXne1 = NewXne-50;}
-//  	elif(NewXne < 0){NewXne1 = NewXne+50;}
-//  	
-//  	if(NewYne > 49){NewYne1 = NewYne-50;}
-//  	elif(NewYne < 0){NewYne1 = NewYne+50;}
-//
-////  	!goto(NewXne1,NewYne1);
-//	-+desXY(NewXne1,NewYne1);
-////  	if(myPos(NewXne1, NewYne1)){-+changeDir(true)}
-////  	!goto; 
-//	-+distCount(Distne+1);
-//  	-+isMoving(true); 
-//  	.
-  	
-//+step(X): isMoving(false) & nextDir(nw) & isSearching(true)
-//	<- 
-////	SpStep = 2;
-//	?spiStep(S);
-//	?myPos(Xne,Yne);
-////	?lastDirection(Dir);
-//	?distCount(Distne);
-//	NewXne = Xne-S*Distne;
-//	NewYne = Yne-S*Distne;
-//	
-//	if(NewXne <= 49 & NewXne >= 0 & NewYne <= 49 & NewYne >= 0){NewXne1 = NewXne;NewYne1 = NewYne;}
-//	elif(NewXne <= 49 & NewXne >=0){NewXne1 = NewXne;}
-//	elif(NewYne <= 49 & NewYne >=0){NewYne1 = NewYne;}
-//	
-//	if(NewXne > 49){NewXne1 = NewXne-50;}
-//  	elif(NewXne < 0){NewXne1 = NewXne+50;}
-//  	
-//  	if(NewYne > 49){NewYne1 = NewYne-50;}
-//  	elif(NewYne < 0){NewYne1 = NewYne+50;}
-//
-////  	!goto(NewXne1,NewYne1);
-//	-+desXY(NewXne1,NewYne1);
-////	!changeDirection(NewXne1,NewYne1);
-////  	if(myPos(NewXne1, NewYne1)){-+changeDir(true)}
-////  	!goto; 
-//  	-+isMoving(true); 
-//  	.
   	
 +step(X): isMoving(true) & thing(TX,TY,taskboard,_) 
 	<- 
 //	?desXY(DX,DY);
-	?myPos(AX,AY);
+	?position(AX,AY);
 	!goto(AX+TX,AY+TY);
 	!acceptTask;
 	.
@@ -186,7 +78,7 @@ spiStep(1).
 //+!changeDirection(X,Y): myPos(X,Y) <- -+changeDir(true).
 
 
-+!goto(X,Y): myPos(X,Y) & changeDir(true)
++!goto(X,Y): position(X,Y) & changeDir(true)
     <- .print("-------> " ,arrived_at(X,Y));
     
     if(nextDir(ne)){-+nextDir(se);}
@@ -197,44 +89,34 @@ spiStep(1).
     -+changeDir(false);
     .
     
-+!goto(X,Y): not myPos(X,Y)	
++!goto(X,Y): not position(X,Y)	
 	<- 
-	?myPos(OX,OY);
+	?position(OX,OY);
 	DISTANCEX=math.abs(X-OX);
 	DISTANCEY=math.abs(Y-OY);
 
 	if (DISTANCEX>=DISTANCEY) {
-    	DESIRABLEX = (X-OX)/DISTANCEX;
+		if((X<13 & OX>35) | (X>35 & OX<12)){
+			DESIRABLEX = -(X-OX)/DISTANCEX;
+		}else{
+			DESIRABLEX = (X-OX)/DISTANCEX;
+		}
     	DESIRABLEY = 0;
 	}else {
 	    DESIRABLEX = 0;
+	    if((Y<13 & OY>35) | (Y>35 & OY<12)){
+	    	DESIRABLEY = -(Y-OY)/DISTANCEY;
+	    }
 	    DESIRABLEY = (Y-OY)/DISTANCEY;
 	}
 	?directionIncrement(DIRECTION,DESIRABLEX,DESIRABLEY);
-//      if(hasTask(false) & thing(_,_,taskboard,_) & foundTB(false)){!findTB;}
-
-//      	if(not thing(0,0,taskboard,_) & hasTask(false)){
 	
-//	.wait(350);
-//	!lastAction(move);
-//      		.wait(350);
-	move(DIRECTION);
-  	if(lastAction(move) & lastActionResult(success)){	
-	  	NewX = OX+DESIRABLEX;
-	  	NewY = OY+DESIRABLEY;
-	  	
-	  	if(NewX <= 49 & NewX >= 0 & NewY <= 49 & NewY >= 0){NewX1 = NewX;NewY1 = NewY;}
-		elif(NewX <= 49 & NewX >=0){NewX1 = NewX;}
-		elif(NewY <= 49 & NewY >=0){NewY1 = NewY;}
-		
-		if(NewX > 49){NewX1 = NewX-50;}
-	  	elif(NewX < 0){NewX1 = NewX+50;}
-	  	
-	  	if(NewY > 49){NewY1 = NewY-50;}
-	  	elif(NewY < 0){NewY1 = NewY+50;}
-	  	
-	  	-+myPos(NewX1,NewY1);
-	  	if(myPos(X,Y)){-+changeDir(true)}
+  	move(DIRECTION);
+  	.wait(500);
+	if(position(X,Y)){-+changeDir(true);}
+//  		move(DIRECTION);
+//	if(lastAction(move) & lastActionResult(success)){	
+//	  	}
 	  	
 //	  		if(thing(XB,YB,dispenser,b0)){
 //				?myPos(XAg, YAg);
@@ -250,22 +132,5 @@ spiStep(1).
 //			}
 //		!goto(X,Y);
 //      	}
-  	}
+  	
   	.
-//+!lastAction(A): lastAction(A) & lastActionResult(success)
-//	<-
-//	NewX = OX+DESIRABLEX;
-//	NewY = OY+DESIRABLEY;
-//	
-//	if(NewX <= 49 & NewX >= 0 & NewY <= 49 & NewY >= 0){NewX1 = NewX;NewY1 = NewY;}
-//	elif(NewX <= 49 & NewX >=0){NewX1 = NewX;}
-//	elif(NewY <= 49 & NewY >=0){NewY1 = NewY;}
-//	
-//	if(NewX > 49){NewX1 = NewX-50;}
-//	elif(NewX < 0){NewX1 = NewX+50;}
-//	
-//	if(NewY > 49){NewY1 = NewY-50;}
-//	elif(NewY < 0){NewY1 = NewY+50;}
-//	
-//	-+myPos(NewX1,NewY1);
-//  	.
