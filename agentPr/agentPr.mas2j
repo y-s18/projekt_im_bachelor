@@ -3,8 +3,12 @@ MAS agentPr {
 	infrastructure: Centralised
 	environment: jason.eis.EISAdapter
 	agents:
-		agent;
-		
+		agent #2;
+		/* change # number
+		 * sampleConfig change entities number
+		 * eismassimConf add agents to entities same password 
+		 * enumerate username
+		 */
 
 	aslSourcePath:
 		"src/asl";
