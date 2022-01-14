@@ -33,17 +33,16 @@ blocked(false).
 newX(0). newY(0).
 spiStep(4). 
 desXY(0,0).
-tryAccept(true).
 
 
 /* Plans */
 /*Communication Steps */
 +step(X): isAlreadyAccepted(T)[source(AGENT)] & not accepted(B)	& B \== T	<- .send(AGENT,tell,answerTask(no,T)); .abolish(isAlreadyAccepted(T)[source(AGENT)]); 
-	.print("QUESTION FROM ", AGENT, " ANSWERED ------------------------------------> ANSWER ", no); /* skip;*/ .
+	.print("QUESTION FROM ", AGENT, " ANSWERED ------------------------------------> ANSWER ", no); skip; .
 +step(X): isAlreadyAccepted(T)[source(AGENT)] & accepted(B)	& B \== T	<- .send(AGENT,tell,answerTask(no,T)); .abolish(isAlreadyAccepted(T)[source(AGENT)]); 
-	.print("QUESTION FROM ", AGENT, " ANSWERED ------------------------------------> ANSWER ", no); /* skip;*/ .
+	.print("QUESTION FROM ", AGENT, " ANSWERED ------------------------------------> ANSWER ", no); skip; .
 +step(X): isAlreadyAccepted(T)[source(AGENT)] & accepted(T)	<- .send(AGENT,tell,answerTask(yes,T)); .abolish(isAlreadyAccepted(T)[source(AGENT)]);
-	.print("QUESTION FROM ", AGENT, " ANSWERED ------------------------------------> ANSWER ", yes); /* skip;*/ .
+	.print("QUESTION FROM ", AGENT, " ANSWERED ------------------------------------> ANSWER ", yes); skip; .
 +step(X): answerTask(_,T) & questionValue(Q) & Q=T & waitingAnswers(true)	<- 
 	.count(answerTask(yes,T), NUM); /* ?listAG(L); .length(L, Len);*/ !makeDecision(NUM); .abolish(answerTask(_,T)); 
 	-+waitingAnswers(false); skip; .
@@ -80,7 +79,7 @@ tryAccept(true).
 	!goto(AX+TX,AY+TY);
 	skip;
 	.
-
+@s1
 +step(X): thing(0,0,taskboard,_) & not accepted(_) & accepting(false) <- -+accepting(true); skip; . 
 	
 /*start doing a task after accepting a Task */
@@ -145,8 +144,8 @@ tryAccept(true).
 
 /*accepting task, if the Agent is on a TB */
 +!acceptTask: thing(0,0,taskboard,_) /* & math.abs(XTB) < 2 & math.abs(YTB) < 2*/ <- ?task(T,_,_,_); /* +doingTask(false); */ 
-//	.remove_plan(s1);
-	!broadcastTask(T); +waitingAnswers(true); 
+	.remove_plan(s1);
+	!broadcastTask(T); +waitingAnswers(true);
 //	?decision(DECISION);
 //	if(DECISION = acceptAction){ .print("Decision: ", DECISION, "-------------------------> ACCEPTED TASK", T); accept(T);}
 //	else{  .print("Decision: ", DECISION, "-------------------------> REJECTED TASK", T); 
