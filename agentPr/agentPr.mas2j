@@ -3,11 +3,14 @@ MAS agentPr {
 	infrastructure: Centralised
 	environment: jason.eis.EISAdapter
 	agents:
-		agent #2;
+//		testAgent;
+		agent#2;
 		/* change # number
-		 * sampleConfig change entities number
-		 * eismassimConf add agents to entities same password 
-		 * enumerate username
+		 * SC: change entities number
+		 * SC: entities number is per team
+		 * SC: change teamsPerMatch
+		 * EISC: add agents to entities same password if same team
+		 * EISC: enumerate username
 		 */
 
 	aslSourcePath:

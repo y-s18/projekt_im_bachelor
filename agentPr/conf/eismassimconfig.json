@@ -9,6 +9,6 @@
   "queued": false,
   "entities": [
     {"name": "agent1", "username": "agentA1", "password": "1", "iilang": false, "xml": false},
-	{"name": "agent2", "username": "agentA2", "password": "1", "iilang": false, "xml": false}
+  	{"name": "agent2", "username": "agentA2", "password": "1", "iilang": false, "xml": false}
   ]
 }

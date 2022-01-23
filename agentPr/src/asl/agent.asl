@@ -13,6 +13,7 @@ listB1([]).
 listTB([]). 
 listGL([]). 
 listAG([]).
+listAnswers([]).
 moving(false). 
 searching(true).
 moveGL(false). 
@@ -22,8 +23,8 @@ searchDisp(false).
 accepting(false). 
 submitting(false). 
 reqDir("").
-extraMoveAction(false). 
-extraMove("").
+extraAction(false). 
+extraActionParams("").
 questionValue(""). 
 nextDir(ne). 
 currDir("").
@@ -38,21 +39,26 @@ desXY(0,0).
 /* Plans */
 /*Communication Steps */
 +step(X): isAlreadyAccepted(T)[source(AGENT)] & not accepted(B)	& B \== T	<- .send(AGENT,tell,answerTask(no,T)); .abolish(isAlreadyAccepted(T)[source(AGENT)]); 
-	.print("QUESTION FROM ", AGENT, " ANSWERED ------------------------------------> ANSWER ", no); skip; .
+	.print("QUESTION FROM ", AGENT, " ABOUT ", T, " ANSWERED ------------------------------------> ANSWER ", no); skip; .
 +step(X): isAlreadyAccepted(T)[source(AGENT)] & accepted(B)	& B \== T	<- .send(AGENT,tell,answerTask(no,T)); .abolish(isAlreadyAccepted(T)[source(AGENT)]); 
-	.print("QUESTION FROM ", AGENT, " ANSWERED ------------------------------------> ANSWER ", no); skip; .
+	.print("QUESTION FROM ", AGENT, " ABOUT ", T, " ANSWERED ------------------------------------> ANSWER ", no); skip; .
 +step(X): isAlreadyAccepted(T)[source(AGENT)] & accepted(T)	<- .send(AGENT,tell,answerTask(yes,T)); .abolish(isAlreadyAccepted(T)[source(AGENT)]);
-	.print("QUESTION FROM ", AGENT, " ANSWERED ------------------------------------> ANSWER ", yes); skip; .
-+step(X): answerTask(_,T) & questionValue(Q) & Q=T & waitingAnswers(true)	<- 
-	.count(answerTask(yes,T), NUM); /* ?listAG(L); .length(L, Len);*/ !makeDecision(NUM); .abolish(answerTask(_,T)); 
-	-+waitingAnswers(false); skip; .
-	/*if(NUM = .length(L)){-+decision(acceptAction);}else{-+decision(refuseAction);}*/ 
+	.print("QUESTION FROM ", AGENT, " ABOUT ", T, " ANSWERED ------------------------------------> ANSWER ", yes); skip; .
++step(X): answerTask(_,T) & questionValue(Q) & Q=T & waitingAnswers(true) & teamSize(TS) & TS>1	<- .findall(an(A,T,AGENT), answerTask(A,T)[source(AGENT)], LIST);
+	-+listAnswers(LIST); .length(LIST, ListLen); !checkReplyNumber(ListLen); skip; .
++step(X): teamSize(1) & questionValue(Q) & Q=T & waitingAnswers(true)	<- .findall(an(A,T,AGENT), answerTask(A,T)[source(AGENT)], LIST);
+	-+listAnswers(LIST); .length(LIST, ListLen); !checkReplyNumber(ListLen); skip; .
+/*update decision belief wether to do an accept action or to try again */
 +!makeDecision(N): N = 0 	<- +decision(acceptAction);.
 +!makeDecision(N): N > 0	<- +decision(refuseAction);.
+/*checks if the agent have received answers from all teammates */
++!checkReplyNumber(AnsNum): teamSize(TS) & AnsNum = TS-1	<- .count(answerTask(yes,T), NUM); !makeDecision(NUM); .abolish(answerTask(_,T)); 
+	-+waitingAnswers(false);.
++!checkReplyNumber(AnsNum): teamSize(TS) & AnsNum \== TS-1	<- .print("--------------------------------------> WAITING FOR ANSWERS");.
 
 /*Initial Steps */
-+step(0): thing(0,0,entity,Team)[entity(NAME), source(percept)]		<- .broadcast(tell,myTeam(NAME,Team)); skip; .
-+step(1) 															<- !listAgents(1, .count(myTeam(_,"A")) ); skip;.
++step(0): team(TEAM) & name(NAME)	<- .broadcast(tell,myName(NAME,TEAM)); skip; .
++step(1): team(TEAM)				<- .findall(agent(N,T),myName(N,T),LIST); -+listAG(LIST); .abolish(myName(_,_)); skip;.
 
 /*trigger the spiral movement when not having a task to do*/
 +step(X): moving(false) & searching(true) & not accepted(_)			<- ?nextDir(D); !calcDesXY(D); -+moving(true); skip; .
@@ -62,7 +68,7 @@ desXY(0,0).
 	?desXY(DX,DY);
 	!storeDispB0; !storeDispB1; !storeGoal;
 	
-	!listBeliefs(1,.count(receivedTB(_,_)), recTB); 
+	!listBeliefs(recTB); 
 	?listTB(L); 
 	!comparePOIs(0, .length(L), recTB);
 	
@@ -73,9 +79,12 @@ desXY(0,0).
 	.
 	
 /*moving towards a TB, if the Agent does not have an accepted task & accept one*/
+/* math.abs(TX)+math.abs(TY) > 2 could cause problems coz !goto() cant reach the destination --> not updating moving with false */
 +step(X): moving(true) & thing(TX,TY,taskboard,_) & not accepted(_)	& math.abs(TX)+math.abs(TY) > 0  & accepting(false)	<- 
 	?position(AX,AY);
 	!storeTB; !storeDispB0; !storeDispB1; !storeGoal;
+	?tb(TBX,TBY);
+	-+desXY(TBX,TBY);
 	!goto(AX+TX,AY+TY);
 	skip;
 	.
@@ -94,15 +103,15 @@ desXY(0,0).
 
 /*move towards the saved goal area & submit the already accepted task */
 /*NEW CODE: gl(XG,YG) & -+desXY(XG,YG) added CL150 attaching step*/
-+step(X): desXY(DX,DY) & submitting(true) & accepted(T) & not position(DX,DY) <- !checkBetterPOI; ?desXY(NewDX,NewDY) !goto(NewDX,NewDY); skip;.
-+step(X): desXY(DX,DY) & submitting(true) & accepted(T) & position(DX,DY) <- -+submitting(false); -+accepting(true); submit(T); .
++step(X): submitting(true) & desXY(DX,DY) & accepted(T) & not position(DX,DY) <- !checkBetterPOI; ?desXY(NewDX,NewDY) !goto(NewDX,NewDY); skip;.
++step(X): submitting(true) & desXY(DX,DY) &  accepted(T) & position(DX,DY) <- -+submitting(false); -+accepting(true); ?tb(XTB,YTB); -+desXY(XTB,YTB); submit(T); .
 //+step(X): gl(XG,YG) & submitting(true) & accepted(T) & not position(XG,YG) <- !goto(XG,YG); skip;.
 //+step(X): gl(XG,YG) & submitting(true) & accepted(T) & position(XG,YG) <- -+submitting(false); -+accepting(true); submit(T); .
 
 
 /*reaccepting a task after submitting one*/
-+step(X): accepting(true) & tb(TBX,TBY) & not position(TBX,TBY) <- !goto(TBX,TBY); skip;.
-+step(X): accepting(true) & tb(TBX,TBY) & position(TBX,TBY) <- -+accepting(false); !acceptTask; skip;.
++step(X): accepting(true) & desXY(DX,DY) /*& tb(TBX,TBY)*/ & not position(DX,DY) <- !checkBetterPOI; ?desXY(NX,NY); !changeDirection(NX,NY); !goto(NX,NY); skip;.
++step(X): accepting(true) & desXY(DX,DY) /*& tb(TBX,TBY)*/ & position(DX,DY) <- -+accepting(false); !acceptTask; skip;.
 
 /*step for triggering goal finding*/
 +step(X): moveGL(false) & searchGL(true)	<- ?nextDir(D); !calcDesXY(D); -+moveGL(true); skip; .
@@ -130,29 +139,33 @@ desXY(0,0).
 //+step(X): moving(true) & searching(true) & thing(TX,TY,taskboard,_) & accepting(false) <- ?position(AX,AY); -+desXY(AX+TX,AY+TY); !goto(AX+TX,AY+TY); !storeTB;.
 
 /*Scenarios when doing a task*/
-+!doTask: accepted(T) & gl(-1,-1) <- -+searchGL(true); !listBeliefs(1,.count(receivedGL(_,_)), recGL); ?listGL(L); !comparePOIs(0, .length(L), recGL);.
-+!doTask: accepted(T) & b0(-1,-1) & searchGL(false)	<- -+searchDisp(true); +searchFor(b0); !listBeliefs(1,.count(receivedB0(_,_)), recB0); 
++!doTask: accepted(T) & gl(-1,-1) <- -+searchGL(true); !listBeliefs(recGL); ?listGL(L); !comparePOIs(0, .length(L), recGL);.
+/*never implement doTask for not gl(-1,-1) */
++!doTask: accepted(T) & b0(-1,-1) & searchGL(false)	<- -+searchDisp(true); +searchFor(b0); !listBeliefs(recB0); 
 	?listB0(L); !comparePOIs(0, .length(L), recB0);.
 +!doTask: accepted(T) & not b0(-1,-1) & task(T,_,_,[req(ASX,ASY,b0)])	<- ?b0(XB,YB); ?direction(DIR,ASX,ASY); -+reqDir(DIR); -+desXY(XB-ASX,YB-ASY); 
-	+requesting(true); -+neededPOI(b0,ASX,ASY); !listBeliefs(1,.count(receivedB0(_,_)), recB0); ?listB0(L); 
+	+requesting(true); -+neededPOI(b0,ASX,ASY); !listBeliefs(recB0); ?listB0(L); 
 	!comparePOIs(0, .length(L),recB0); ?b0(NewXB, NewYB); -+desXY(NewXB-ASX,NewYB-ASY);.
-+!doTask: accepted(T) & b1(-1,-1) & searchGL(false) <- -+searchDisp(true); +searchFor(b1); !listBeliefs(1,.count(receivedB1(_,_)), recB1); 
++!doTask: accepted(T) & b1(-1,-1) & searchGL(false) <- -+searchDisp(true); +searchFor(b1); !listBeliefs(recB1); 
 	?listB1(L); !comparePOIs(0,.length(L),recB1);.
 +!doTask: accepted(T) & not b1(-1,-1) & task(T,_,_,[req(ASX,ASY,b1)])	<- ?b1(XB,YB); ?direction(DIR,ASX,ASY); -+reqDir(DIR); -+desXY(XB-ASX,YB-ASY); 
-	+requesting(true); -+neededPOI(b1,ASX,ASY); !listBeliefs(1,.count(receivedB1(_,_)), recB1); ?listB1(L); 
+	+requesting(true); -+neededPOI(b1,ASX,ASY); !listBeliefs(recB1); ?listB1(L); 
 	!comparePOIs(0, .length(L),recB1); ?b1(NewXB, NewYB); -+desXY(NewXB-ASX,NewYB-ASY); .
 
 /*accepting task, if the Agent is on a TB */
-+!acceptTask: thing(0,0,taskboard,_) /* & math.abs(XTB) < 2 & math.abs(YTB) < 2*/ <- ?task(T,_,_,_); /* +doingTask(false); */ 
++!acceptTask: thing(XTB,YTB,taskboard,_) & math.abs(XTB) + math.abs(YTB) < 3  <- ?task(T,_,_,_); /* +doingTask(false); */ 
 	.remove_plan(s1);
-	!broadcastTask(T); +waitingAnswers(true);
-//	?decision(DECISION);
-//	if(DECISION = acceptAction){ .print("Decision: ", DECISION, "-------------------------> ACCEPTED TASK", T); accept(T);}
-//	else{  .print("Decision: ", DECISION, "-------------------------> REJECTED TASK", T); 
-//	.print("--------------> Waiting for a new Task"); /*accept(T-1);!acceptTask; */
-//	}  
+	!broadcastTask(T); 
+	if(brCastResult(success)){
+		+waitingAnswers(true); 
+		-brCastResult(_);
+	}else{
+		-brCastResult(_); 
+		-+accepting(true);
+		skip;
+	}
 	.
-+!acceptTask: thing(XTB,YTB,taskboard,_) & math.abs(XTB) > 0 & math.abs(YTB) > 0 <- 
++!acceptTask: thing(XTB,YTB,taskboard,_) & math.abs(XTB) + math.abs(YTB) > 3 <- 
 	.print("-----------------------------------> CAN'T ACCEPT");.
 
 +step(X): waitingAnswers(false)	<- 
@@ -160,16 +173,19 @@ desXY(0,0).
 	if(DECISION = acceptAction){ 
 		?questionValue(T);
 		.print("Decision: ", DECISION, "-------------------------> ACCEPTED TASK", T); 
-		accept(T); 
+		-decision(_);
+		-waitingAnswers(_);
 		+doingTask(false);
+		accept(T); 
 	}
 	else{  
-	.print("Decision: ", DECISION, "-------------------------> REJECTED TASK", T); 
-	.print("--------------> Waiting for a new Task");
-	-+accepting(true); /*accept(T-1);!acceptTask; */
+		.print("Decision: ", DECISION, "-------------------------> REJECTED TASK", T); 
+		.print("--------------> Waiting for a new Task");
+		-+accepting(true);
+		-decision(_);
+		-waitingAnswers(_);
+		skip;
 	} 
-	-decision(_);
-	-waitingAnswers(_);
 	.
 
 //+!acceptTask: thing(XTB,YTB,taskboard,_) & math.abs(XTB) > 2 & math.abs(YTB) > 2 <- .print("not arrived yet");.
@@ -177,32 +193,49 @@ desXY(0,0).
 
 /*Checks if better POI -than the saved ones- available(closer to the agent)*/
 /*No destination change when the available destinations are worse or =, Disp's scenarios*/
+	// math.abs(DX+NBX-AX) + math.abs(DY+NBY-AY) <= math.abs(XB) + math.abs(YB)
 +!checkBetterPOI: requesting(true) & desXY(DX,DY) & neededPOI(b0,NBX,NBY) & thing(XB,YB,dispenser,b0) 
-	& position(AX,AY) & math.abs(DX+NBX-AX)<=math.abs(XB) & math.abs(DY+NBY-AY)<=math.abs(YB) 		<- -+desXY(DX,DY); !changeDirection(DX,DY);.
+	& position(AX,AY) & /*math.abs(DX+NBX-AX)<=math.abs(XB) & math.abs(DY+NBY-AY)<=math.abs(YB)*/
+						math.abs(DX+NBX-AX) + math.abs(DY+NBY-AY) <= math.abs(XB) + math.abs(YB) 		<- !changeDirection(DX,DY);.
 +!checkBetterPOI: requesting(true) & desXY(DX,DY) & neededPOI(b1,NBX,NBY) & thing(XB,YB,dispenser,b1) 
-	& position(AX,AY) & math.abs(DX+NBX-AX)<=math.abs(XB) & math.abs(DY+NBY-AY)<=math.abs(YB) 		<- -+desXY(DX,DY); !changeDirection(DX,DY);.
+	& position(AX,AY) & /*math.abs(DX+NBX-AX)<=math.abs(XB) & math.abs(DY+NBY-AY)<=math.abs(YB)*/
+						math.abs(DX+NBX-AX) + math.abs(DY+NBY-AY) <= math.abs(XB) + math.abs(YB) 		<- !changeDirection(DX,DY);.
 	
 /*No destination change when no other destinations available */
-+!checkBetterPOI: requesting(true) & desXY(DX,DY) & neededPOI(b0,_,_) & not thing(_,_,dispenser,b0) <- -+desXY(DX,DY); !changeDirection(DX,DY);.
-+!checkBetterPOI: requesting(true) & desXY(DX,DY) & neededPOI(b1,_,_) & not thing(_,_,dispenser,b1) <- -+desXY(DX,DY); !changeDirection(DX,DY);.
++!checkBetterPOI: requesting(true) & desXY(DX,DY) & neededPOI(b0,_,_) & not thing(_,_,dispenser,b0) <- !changeDirection(DX,DY);.
++!checkBetterPOI: requesting(true) & desXY(DX,DY) & neededPOI(b1,_,_) & not thing(_,_,dispenser,b1) <- !changeDirection(DX,DY);.
 	
 /*Change Destination */
+//		math.abs(DX+NBX-AX) + math.abs(DY+NBY-AY) > math.abs(XB) + math.abs(YB)
 +!checkBetterPOI: requesting(true) & desXY(DX,DY) & neededPOI(b0,NBX,NBY) & thing(XB,YB,dispenser,b0) 
-	& position(AX,AY) & math.abs(DX+NBX-AX)>math.abs(XB) & math.abs(DY+NBY-AY)>math.abs(YB) 		<- ?direction(DIR,NBX,NBY); -+reqDir(DIR); 
+	& position(AX,AY) & /*math.abs(DX+NBX-AX)>math.abs(XB) & math.abs(DY+NBY-AY)>math.abs(YB)*/
+						math.abs(DX+NBX-AX) + math.abs(DY+NBY-AY) > math.abs(XB) + math.abs(YB) 		<- ?direction(DIR,NBX,NBY); -+reqDir(DIR); 
 	-+newX(AX+XB-NBX);-+newY(AY+YB-NBY); !correctX; !correctY; ?newX(NX); ?newY(NY); -+desXY(NX,NY); /*AX+XB-NBX, AY+YB-NBY*/ !changeDirection(NX,NY);.
 	
 +!checkBetterPOI: requesting(true) & desXY(DX,DY) & neededPOI(b1,NBX,NBY) & thing(XB,YB,dispenser,b1) 
-	& position(AX,AY) & math.abs(DX+NBX-AX)>math.abs(XB) & math.abs(DY+NBY-AY)>math.abs(YB) 		<- ?direction(DIR,NBX,NBY); -+reqDir(DIR); 
+	& position(AX,AY) & /*math.abs(DX+NBX-AX)>math.abs(XB) & math.abs(DY+NBY-AY)>math.abs(YB)*/
+						math.abs(DX+NBX-AX) + math.abs(DY+NBY-AY) > math.abs(XB) + math.abs(YB) 		<- ?direction(DIR,NBX,NBY); -+reqDir(DIR); 
 	-+newX(AX+XB-NBX);-+newY(AY+YB-NBY); !correctX; !correctY; ?newX(NX); ?newY(NY); -+desXY(NX,NY); /*AX+XB-NBX,AY+YB-NBY */ !changeDirection(NX,NY);.
 	
 /*better goal coordinates scenarios */
-+!checkBetterPOI: submitting(true) & desXY(DX,DY) & not goal(_,_) 	<- -+desXY(DX,DY); !changeDirection(DX,DY);.
+//	math.abs(DX-AX) + math.abs(DY-AY) <= math.abs(XG) + math.abs(YG)
++!checkBetterPOI: submitting(true) & desXY(DX,DY) & not goal(_,_) 			<- !changeDirection(DX,DY);.
 +!checkBetterPOI: submitting(true) & desXY(DX,DY) & goal(XG,YG) & position(AX,AY) 
-	& math.abs(DX-AX)<=math.abs(XG) & math.abs(DY-AY)<=math.abs(YG) <- -+desXY(DX,DY); !changeDirection(DX,DY);.
+	& /*math.abs(DX-AX)<=math.abs(XG) & math.abs(DY-AY)<=math.abs(YG)*/ 
+		math.abs(DX-AX) + math.abs(DY-AY) <= math.abs(XG) + math.abs(YG)	<- !changeDirection(DX,DY);.
 +!checkBetterPOI: submitting(true) & desXY(DX,DY) & goal(XG,YG) & position(AX,AY) 
-	& math.abs(DX-AX)>math.abs(XG) & math.abs(DY-AY)>math.abs(YG) 	<- -+newX(AX+XG);-+newY(AY+YG); !correctX; 
+	& /*math.abs(DX-AX)>math.abs(XG) & math.abs(DY-AY)>math.abs(YG)*/ 	
+		math.abs(DX-AX) + math.abs(DY-AY) > math.abs(XG) + math.abs(YG)		<- -+newX(AX+XG);-+newY(AY+YG); !correctX; 
 	!correctY; ?newX(NX); ?newY(NY); -+desXY(NX,NY); /*AX+XG,AY+YG */ !changeDirection(NX,NY);.
-	
+
++!checkBetterPOI: accepting(true) & desXY(DX,DY) & not thing(XTB,YTB,taskboard,_)			<- !changeDirection(DX,DY); . 
++!checkBetterPOI: accepting(true) & desXY(DX,DY) & thing(XTB,YTB,taskboard,_)
+	& position(AX,AY) & math.abs(DX-AX) + math.abs(DY-AY) <= math.abs(XTB) + math.abs(YTB)	<- !changeDirection(DX,DY); . 
++!checkBetterPOI: accepting(true) & desXY(DX,DY) & thing(XTB,YTB,taskboard,_) 
+	& position(AX,AY) & math.abs(DX-AX) + math.abs(DY-AY) > math.abs(XTB) + math.abs(YTB)	<- -+newX(AX+XTB); -+newY(AY+YTB); !correctX; !correctY; 
+	?newX(NX); ?newY(NY); -+desXY(NX,NY); !changeDirection(NX,NY); . 
+/* ----------------------------------CHANGE DIRECTION-----------------------------------
+ * 	 	updates the general direction of the agent based on the current destination	*/
 +!changeDirection(NX,NY): position(AX,AY) & AX>NX & AY>NY <- -+nextDir(nw);.
 +!changeDirection(NX,NY): position(AX,AY) & AX<=NX & AY<=NY <- -+nextDir(se);.
 +!changeDirection(NX,NY): position(AX,AY) & AX>NX & AY<=NY <- -+nextDir(sw);.
@@ -214,73 +247,37 @@ desXY(0,0).
 +!broadcastPOI(b1)	<- ?b1(XB,YB); .broadcast(tell, receivedB1(XB,YB)); .
 +!broadcastPOI(gl)	<- ?gl(XG,YG); .broadcast(tell, receivedGL(XG,YG)); .
 +!broadcastPOI(tb)	<- ?tb(XTB,YTB); .broadcast(tell, receivedTB(XTB,YTB)); .
-+!broadcastTask(T)	<- -+questionValue(T); .broadcast(tell, isAlreadyAccepted(T)); 
-	.print("QUESTION BROADCASTED ------------------------------------> QUESTION ABOUT ", T); .
-/* -----------------------------------LISTS CREATION----------------------------------- 
-*							Create list of the known Agents*/
-+!listAgents(COUNTER, N): COUNTER <= N	<- ?thing(0,0,entity,TEAM); ?myTeam(NAME,TEAM); ?listAG(L);
-	if(not .member(myTeam(NAME,TEAM),L)){
-		.concat(L,[myTeam(NAME,TEAM)],NewL);
-		-+listAG(NewL);
-	}
-	.abolish(myTeam(NAME,TEAM)); 
-	!listAgents(COUNTER+1, N);
-	.
-
-+!listAgents(COUNTER, N): COUNTER > N <- ?listAG(L); -+listAG(L);.
++!broadcastTask(T): questionValue(Q) & Q \== T & teamSize(TS) & TS>1 <- +brCastResult(success); -+questionValue(T); .broadcast(tell, isAlreadyAccepted(T));
+	.print("QUESTION BROADCASTED ------------------------------------> QUESTION FROM ",name(NAME)," ABOUT ", T); . 
++!broadcastTask(T): questionValue(Q) & Q = T & teamSize(TS) & TS>1	 <- +brCastResult(failed_repeated);
+	.print("---------------------------------------------------------> ALREADY ASKED ABOUT ", T); .
++!broadcastTask(T): teamSize(1) <- 
+	+brCastResult(success); -+questionValue(T); /* +answerTask(no,T)[source(AGENT)];*/ .print("-----> SINGLE AGENT NO NEED TO BROADCAST!"); .
 	
-+!listBeliefs(COUNTER,N,recB0): COUNTER<=N & receivedB0(_,_)	<- ?receivedB0(XB,YB); ?listB0(L); 
-	if(not .member(receivedB0(XB,YB),L)){
-		.concat(L,[receivedB0(XB,YB)],NewL);
-		-+listB0(NewL);
-	} 
-//	-receivedB0(XB,YB)[source(agent2)]; 
-	.abolish(receivedB0(XB,YB));
-	!listBeliefs(COUNTER+1,N,recB0);
-	. 
-+!listBeliefs(COUNTER,N,recB1): COUNTER<=N & receivedB1(_,_)	<- ?receivedB1(XB,YB); ?listB1(L); 
-	if(not .member(receivedB1(XB,YB),L)){
-		.concat(L,[receivedB1(XB,YB)],NewL); 
-		-+listB1(NewL); 
-	}
-//	-receivedB1(XB,YB)[source(agent2)]; 
-	.abolish(receivedB1(XB,YB));
-	!listBeliefs(COUNTER+1,N,recB1);
-	.
-+!listBeliefs(COUNTER,N,recTB): COUNTER<=N & receivedTB(_,_)	<- ?receivedTB(XTB,YTB); ?listTB(L); 
-	if(not .member(receivedTB(XTB,YTB),L)){
-		.concat(L,[receivedTB(XTB,YTB)],NewL);
-		-+listTB(NewL);
-	} 
-//	-receivedTB(XTB,YTB)[source(agent2)]; 
-	.abolish(receivedTB(XTB,YTB));
-	!listBeliefs(COUNTER+1,N,recTB);
-	. 
-+!listBeliefs(COUNTER,N,recGL): COUNTER<=N & receivedGL(_,_)	<- ?receivedGL(XG,YG); ?listGL(L);
-	if(not .member(receivedGL(XG,YG),L)){
-		.concat(L,[receivedGL(XG,YG)],NewL);
-		-+listGL(NewL);
-	}
-	.abolish(receivedGL(XGL,YGL));
-	!listBeliefs(COUNTER+1,N,recGL);
-	.
+//.findall(an(A,T,AGENT), answerTask(A,T)[source(AGENT)], LIST);
++!listBeliefs(recB0) <- .findall(b0(XB,YB),receivedB0(XB,YB),L); .abolish(receivedB0(_,_)); !updateList(0, .length(L), L, b0);.
++!listBeliefs(recB1) <- .findall(b1(XB,YB),receivedB1(XB,YB),L); .abolish(receivedB1(_,_)); !updateList(0, .length(L), L, b1);.
++!listBeliefs(recGL) <- .findall(gl(XB,YB),receivedGL(XG,YG),L); .abolish(receivedGL(_,_)); !updateList(0, .length(L), L, gl);.
++!listBeliefs(recTB) <- .findall(tb(XTB,YTB),receivedTB(XTB,YTB),L); .abolish(receivedTB(_,_)); !updateList(0, .length(L), L, tb);.
 
-+!listBeliefs(COUNTER,N,recB0): COUNTER>N <- ?listB0(L); -+listB0(L);.
-+!listBeliefs(COUNTER,N,recB1): COUNTER>N <- ?listB1(L); -+listB1(L);.
-+!listBeliefs(COUNTER,N,recTB): COUNTER>N <- ?listTB(L); -+listTB(L);.
-+!listBeliefs(COUNTER,N,recGL): COUNTER>N <- ?listGL(L); -+listGL(L);.
-
-+!listBeliefs(COUNTER,N,recB0): not receivedB0(_,_) <- ?listB0(L); -+listB0(L);.
-+!listBeliefs(COUNTER,N,recB1): not receivedB1(_,_) <- ?listB1(L); -+listB1(L);.
-+!listBeliefs(COUNTER,N,recTB): not receivedTB(_,_) <- ?listTB(L); -+listTB(L);.
-+!listBeliefs(COUNTER,N,recGL): not receivedGL(_,_) <- ?listGL(L); -+listGL(L);.
++!updateList(COUNTER,N,LIST,POI): COUNTER < N <- 
+	if(POI=b0){?listB0(OldL);}elif(POI=b1){?listB1(OldL);}elif(POI=gl){?listGL(OldL);}elif(POI=tb){?listTB(OldL);}
+	.nth(COUNTER,LIST,ELEMENT);
+	if(not .member(ELEMENT, OldL)){
+		.concat(OldL,[ELEMENT], NewL);
+		if(POI=b0){-+listB0(NewL);}elif(POI=b1){-+listB1(NewL);}elif(POI=gl){-+listGL(NewL);}elif(POI=tb){-+listTB(NewL);}
+	}
+	!updateList(COUNTER+1, N, LIST, POI);
+	.
+	
++!updateList(COUNTER,N,_,_): COUNTER >=N <- .print("FINISHED UPDATING"); .
 
 /* -----------------------------------COMPARE POIs-----------------------------------
  *							compare saved POIs with received POIs
  * ADD TEAM TEST XXX */
 +!comparePOIs(COUNTER,N,recB0): COUNTER <= N-1 & not b0(-1,-1) <-	
 	?listB0(L); ?position(AX,AY); ?b0(X,Y);
-	.nth(COUNTER,L,receivedB0(XB,YB));
+	.nth(COUNTER,L,b0(XB,YB));
 	.print("------------------------------------------------------------> ",visited(XB,YB));
 	RecDIST = math.abs(XB-AX) + math.abs(YB-AY);
 	SavedDIST = math.abs(X-AX) + math.abs(Y-AY);
@@ -296,7 +293,7 @@ desXY(0,0).
 	?listB1(L);
 	?position(AX,AY);
 	?b1(X,Y);
-	.nth(COUNTER,L,receivedB1(XB,YB));
+	.nth(COUNTER,L,b1(XB,YB));
 	.print("------------------------------------------------------------> ", visited(XB,YB));
 	RecDIST = math.abs(XB-AX) + math.abs(YB-AY);
 	SavedDIST = math.abs(X-AX) + math.abs(Y-AY);
@@ -311,7 +308,7 @@ desXY(0,0).
 	?listGL(L);
 	?position(AX,AY);
 	?gl(X,Y);
-	.nth(COUNTER,L,receivedGL(XG,YG));
+	.nth(COUNTER,L,gl(XG,YG));
 	.print("------------------------------------------------------------> ", visited(XG,YG));
 	RecDIST = math.abs(XG-AX) + math.abs(YG-AY);
 	SavedDIST = math.abs(X-AX) + math.abs(Y-AY);
@@ -327,7 +324,7 @@ desXY(0,0).
 	?listTB(L);
 	?position(AX,AY);
 	?tb(X,Y);
-	.nth(COUNTER,L,receivedTB(XTB,YTB));
+	.nth(COUNTER,L,tb(XTB,YTB));
 	.print("------------------------------------------------------------> ", visited(XTB,YTB));
 	RecDIST = math.abs(XTB-AX) + math.abs(YTB-AY);
 	SavedDIST = math.abs(X-AX) + math.abs(Y-AY);
@@ -344,10 +341,10 @@ desXY(0,0).
 +!comparePOIs(COUNTER,N,recGL): COUNTER > N-1 & gl(XG,YG) <- -+gl(XG,YG);.
 +!comparePOIs(COUNTER,N,recTB): COUNTER > N-1 & tb(XTB,YTB) <- -+tb(XTB,YTB);.
 
-+!comparePOIs(0,N,recB0): N > 0 & b0(-1,-1) <- ?listB0(L); .nth(0,L,receivedB0(XB,YB)); -+b0(XB,YB); -+searchDisp(false);.
-+!comparePOIs(0,N,recB1): N > 0 & b1(-1,-1) <- ?listB1(L); .nth(0,L,receivedB1(XB,YB)); -+b1(XB,YB); -+searchDisp(false);.
-+!comparePOIs(0,N,recGL): N > 0 & gl(-1,-1) <- ?listGL(L); .nth(0,L,receivedGL(XG,YG)); -+gl(XG,YG); -+searchGL(false);.
-+!comparePOIs(0,N,recTB): N > 0 & tb(-1,-1) <- ?listTB(L); .nth(0,L,receivedTB(XTB,YTB)); -+tb(XTB,YTB); .
++!comparePOIs(0,N,recB0): N > 0 & b0(-1,-1) <- ?listB0(L); .nth(0,L,b0(XB,YB)); -+b0(XB,YB); -+searchDisp(false);.
++!comparePOIs(0,N,recB1): N > 0 & b1(-1,-1) <- ?listB1(L); .nth(0,L,b1(XB,YB)); -+b1(XB,YB); -+searchDisp(false);.
++!comparePOIs(0,N,recGL): N > 0 & gl(-1,-1) <- ?listGL(L); .nth(0,L,gl(XG,YG)); -+gl(XG,YG); -+searchGL(false);.
++!comparePOIs(0,N,recTB): N > 0 & tb(-1,-1) <- ?listTB(L); .nth(0,L,tb(XTB,YTB)); -+tb(XTB,YTB); .
 
 +!comparePOIs(0,0,recB0): b0(-1,-1) | not b0(-1,-1)  <- ?b0(XB,YB); -+b0(XB,YB); .
 +!comparePOIs(0,0,recB1): b1(-1,-1) | not b1(-1,-1) <- ?b1(XB,YB); -+b1(XB,YB); .
@@ -397,7 +394,6 @@ desXY(0,0).
 	DISTANCEY=math.abs(Y-OY);
 
 	if (DISTANCEX>=DISTANCEY) {
-//		if((X<13 & OX>35) | (X>35 & OX<12)){
 		if(math.abs(X-OX)>24){
 			DESIRABLEX = -(X-OX)/DISTANCEX;
 		}else{
@@ -406,7 +402,6 @@ desXY(0,0).
     	DESIRABLEY = 0;
 	}else {
 	    DESIRABLEX = 0;
-//	    if((Y<13 & OY>35) | (Y>35 & OY<12)){
 	    if(math.abs(Y-OY)>24){
 	    	DESIRABLEY = -(Y-OY)/DISTANCEY;
 	    }else{
@@ -417,17 +412,294 @@ desXY(0,0).
 //	!checkLastAction(DIRECTION);
 
 /*START */
-//	?nextDir(NextD);
-//	?currDir(NewD);
+	?nextDir(NextD);
 //	!checkLastAction(DIRECTION);
-//	!checkObstacles(NextD,DIRECTION);
+	!checkObstacles(NextD,DIRECTION);
 //	!checkAgent(DIRECTION);
 //	?currDir(NewD);
 //	move(NewD);
 /*END */
-	move(DIRECTION);
+//	move(DIRECTION);
   	.
   	
+/* oAo e.g try every direction(ne,se..) till one works, poss. problem: endless loop -> if ne is the solu. and e is blocked then try north first
+ * ooo
+  */
+//+!checkLastAction(D): lastAction(move) & lastActionResult(failed_path) & lastActionParams([Dir]) <- !checkLastActionParams(Dir); .
++!checkLastAction(D): (lastAction(move) | lastAction(submit) | lastAction(attach) | lastAction(no_action) 
+						| lastAction(skip)) & lastActionResult(success) <- -+currDir(D); !chooseAction(mo,D); .
+						
++!checkLastAction(D): lastAction(move) & lastActionResult(failed_path) & direction(D,OX,OY) & obstacle(OX,OY)
+	<- !chooseAction(cl,s); .print("HI");.
+
++!checkLastAction(D): lastAction(move) & lastActionResult(failed_path) & direction(D,AX,AY) & thing(AX,AY,entity,_)
+	<- !chooseAction(mo,e);
+	.
+
++!checkLastAction(D): lastAction(submit) & (lastActionResult(failed_target) | lastActionResult(failed) | lastActionResult(failed_random)) <-
+	/* ?attached(X,Y);*/ ?reqDir(DIR); /*?direction(DIR,X,Y);*/ detach(DIR);
+	.
+
+//+!checkLastAction(D): (lastAction(no_action) | lastAction(skip)) & lastActionResult(success) <- -+currDir(D);.
+//+!checkLastAction(D): (lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(D);.
+//+!checkLastAction(D): lastAction(skip) & lastActionResult(success) <- -+currDir(D);.
+
+
+/* -----------------------------------BLOCKED SCENARIOS CHECK OBSTACLE----------------------------------- */
+/*START */
+//1,-1 ne //-1,-1 nw //1,1 se //-1,1 sw
+/* NE------>N */
+//1 block
+//+!checkObstacles(ne,n): obstacle(-1,-1) & not obstacle(0,-1) & not obstacle(1,-1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(e); -+extraAction(true); -+extraActionParams(mo,n); !chooseAction(mo,e);.//ne when nw should e XXXX
+//+!checkObstacles(ne,n): not obstacle(-1,-1) & obstacle(0,-1) & not obstacle(1,-1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(e); !chooseAction(mo,e);.
+//+!checkObstacles(ne,n): not obstacle(-1,-1) & not obstacle(0,-1) & obstacle(1,-1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(e); -+extraAction(true); -+extraActionParams(mo,s); !chooseAction(mo,e);.//ne when nw should w XXXX
+////2 blocks
+//+!checkObstacles(ne,n): (obstacle(-1,-1) & obstacle(0,-1) & not obstacle(1,-1)) | 
+//						(not obstacle(-1,-1) & obstacle(0,-1) & obstacle(1,-1)) | 
+//						(obstacle(-1,-1) & not obstacle(0,-1) & obstacle(1,-1))  & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(n); !chooseAction(cl,n);.//ne when nw should e XXXX
+////+!checkObstacles(ne,n): not obstacle(-1,-1) & obstacle(0,-1) & obstacle(1,-1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(e); -+extraAction(true); -+extraActionParams(mo,s); !chooseAction(mo,e);.
+////+!checkObstacles(ne,n): obstacle(-1,-1) & not obstacle(0,-1) & obstacle(1,-1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(e); -+extraAction(true); -+extraActionParams(mo,s); !chooseAction(mo,e);.//ne when nw should w XXXX
+////3 blocks
+//+!checkObstacles(ne,n): obstacle(-1,-1) & obstacle(0,-1) & obstacle(1,-1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(n); !chooseAction(cl,n);.
+
+/* NW------>N */
+//1 block
+//+!checkObstacles(nw,n): obstacle(-1,-1) & not obstacle(0,-1) & not obstacle(1,-1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(w); -+extraAction(true); -+extraActionParams(mo,s); !chooseAction(mo,w);.
+//+!checkObstacles(nw,n): not obstacle(-1,-1) & obstacle(0,-1) & not obstacle(1,-1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(w); !chooseAction(mo,w);.
+//+!checkObstacles(nw,n): not obstacle(-1,-1) & not obstacle(0,-1) & obstacle(1,-1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(w); -+extraAction(true); -+extraActionParams(mo,n);  !chooseAction(mo,w);.
+////2 blocks
+//+!checkObstacles(nw,n): (obstacle(-1,-1) & obstacle(0,-1) & not obstacle(1,-1)) | 
+//						(not obstacle(-1,-1) & obstacle(0,-1) & obstacle(1,-1)) |
+//						(obstacle(-1,-1) & not obstacle(0,-1) & obstacle(1,-1)) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(n); !chooseAction(cl,n);.//ne when nw should e XXXX
+////+!checkObstacles(nw,n): not obstacle(-1,-1) & obstacle(0,-1) & obstacle(1,-1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(w); !chooseAction(mo,w);.
+////+!checkObstacles(nw,n): obstacle(-1,-1) & not obstacle(0,-1) & obstacle(1,-1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(w); -+extraAction(true); -+extraActionParams(mo,s); !chooseAction(mo,w);.//ne when nw should w XXXX
+////3 blocks
+//+!checkObstacles(nw,n): obstacle(-1,-1) & obstacle(0,-1) & obstacle(1,-1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(n); !chooseAction(cl,n);.
+//+!checkObstacles(_,n): not obstacle(-1,-1) & not obstacle(0,-1) & not obstacle(1,-1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(n);  !chooseAction(mo,n);.//XXXX
+//
+//
+//+!checkObstacles(_,_): extraAction(true) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- ?extraActionParams(ACTION,DIR); /*-+currDir(D);*/ -+extraAction(false);  !chooseAction(ACTION,DIR);.
+//
+///* NE------>E */
+////1 block
+//+!checkObstacles(ne,e): obstacle(1,-1) & not obstacle(1,0) & not obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(e); -+extraAction(true); -+extraActionParams(mo,s); !chooseAction(mo,e);.//ne when se should n XXXX
+//+!checkObstacles(ne,e): not obstacle(1,-1) & obstacle(1,0) & not obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(n); !chooseAction(mo,n);.//ne when se should n XXXX
+//+!checkObstacles(ne,e): not obstacle(1,-1) & not obstacle(1,0) & obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(n); -+extraAction(true); -+extraActionParams(mo,e); !chooseAction(mo,n);.//ne when se should s XXXX
+////2 blocks
+//+!checkObstacles(ne,e): (obstacle(1,-1) & obstacle(1,0) & not obstacle(1,1)) |
+//						(not obstacle(1,-1) & obstacle(1,0) & obstacle(1,1)) |
+//						(obstacle(1,-1) & not obstacle(1,0) & obstacle(1,1)) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(e); !chooseAction(cl,e);. //ne when se should s XXXX
+////+!checkObstacles(ne,e): not obstacle(1,-1) & obstacle(1,0) & obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(n); !chooseAction(mo,n);. //ne when se should s XXXX
+////+!checkObstacles(ne,e): obstacle(1,-1) & not obstacle(1,0) & obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(n); -+extraAction(true); -+extraActionParams(mo,w); !chooseAction(mo,n);. //ne when se should s XXXX
+////3 blocks
+//+!checkObstacles(ne,e): obstacle(1,-1) & obstacle(1,0) & obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(e); !chooseAction(cl,e);.
+//
+///* SE------>E */
+////1 block
+//+!checkObstacles(se,e): obstacle(1,-1) & not obstacle(1,0) & not obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(s); -+extraAction(true); -+extraActionParams(mo,e); !chooseAction(mo,s);.
+//+!checkObstacles(se,e): not obstacle(1,-1) & obstacle(1,0) & not obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(s); -+extraAction(true); -+extraActionParams(mo,w); !chooseAction(mo,s);.
+//+!checkObstacles(se,e): not obstacle(1,-1) & not obstacle(1,0) & obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(s); -+extraAction(true); -+extraActionParams(mo,w); !chooseAction(mo,s);.
+////2 blocks
+//+!checkObstacles(se,e): (obstacle(1,-1) & obstacle(1,0) & not obstacle(1,1)) |
+//						(not obstacle(1,-1) & obstacle(1,0) & obstacle(1,1)) |
+//						(obstacle(1,-1) & not obstacle(1,0) & obstacle(1,1)) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(e); !chooseAction(cl,e);.
+////+!checkObstacles(se,e): not obstacle(1,-1) & obstacle(1,0) & obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(s); -+extraAction(true); -+extraActionParams(mo,w); !chooseAction(mo,s);.
+////+!checkObstacles(se,e): obstacle(1,-1) & not obstacle(1,0) & obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(s); -+extraAction(true); -+extraActionParams(mo,w); !chooseAction(mo,s);.
+////3 blocks
+//+!checkObstacles(se,e): obstacle(1,-1) & obstacle(1,0) & obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(e); !chooseAction(cl,e);.
+//+!checkObstacles(_,e): not obstacle(1,-1) & not obstacle(1,0) & not obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(e); !chooseAction(mo,e);.
+//
+///* SE------>S */
+////1 block
+//+!checkObstacles(se,s): obstacle(-1,1) & not obstacle(0,1) & not obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(e); -+extraAction(true); -+extraActionParams(mo,s); !chooseAction(mo,e);.//se when sw should w XXXX
+//+!checkObstacles(se,s): not obstacle(-1,1) & obstacle(0,1) & not obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(e); !chooseAction(mo,e);.
+//+!checkObstacles(se,s): not obstacle(-1,1) & not obstacle(0,1) & obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(e); -+extraAction(true); -+extraActionParams(mo,n); !chooseAction(mo,e);.//se when sw should e XXXX
+////2 blocks
+//+!checkObstacles(se,s): (obstacle(-1,1) & obstacle(0,1) & not obstacle(1,1)) |
+//						(not obstacle(-1,1) & obstacle(0,1) & obstacle(1,1)) |
+//						(obstacle(-1,1) & not obstacle(0,1) & obstacle(1,1)) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(s); !chooseAction(cl,s);.
+////+!checkObstacles(se,s): not obstacle(-1,1) & obstacle(0,1) & obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(e); -+extraAction(true); -+extraActionParams(mo,n); !chooseAction(mo,e);.
+////+!checkObstacles(se,s): obstacle(-1,1) & not obstacle(0,1) & obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(e); -+extraAction(true); -+extraActionParams(mo,n); !chooseAction(mo,e);.
+////3 blocks
+//+!checkObstacles(se,s): obstacle(-1,1) & obstacle(0,1) & obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(s); !chooseAction(cl,s);.
+//
+///* SW------>S */
+////1 block
+//+!checkObstacles(sw,s): obstacle(-1,1) & not obstacle(0,1) & not obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(w); -+extraAction(true); -+extraActionParams(mo,n); !chooseAction(mo,w);.
+//+!checkObstacles(sw,s): not obstacle(-1,1) & obstacle(0,1) & not obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(w); !chooseAction(mo,w);.
+//+!checkObstacles(sw,s): not obstacle(-1,1) & not obstacle(0,1) & obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(w); -+extraAction(true); -+extraActionParams(mo,s); !chooseAction(mo,w);.//se when sw should e XXXX
+////2 blocks
+//+!checkObstacles(sw,s): (obstacle(-1,1) & obstacle(0,1) & not obstacle(1,1)) |
+//						(not obstacle(-1,1) & obstacle(0,1) & obstacle(1,1)) |
+//						(obstacle(-1,1) & not obstacle(0,1) & obstacle(1,1)) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(s); !chooseAction(cl,s);.//se when sw should w XXXX
+////+!checkObstacles(sw,s): not obstacle(-1,1) & obstacle(0,1) & obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(w); !chooseAction(mo,w);.//se when sw should w XXXX
+////+!checkObstacles(sw,s): obstacle(-1,1) & not obstacle(0,1) & obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(w); -+extraAction(true); -+extraActionParams(mo,n); !chooseAction(mo,w);.//se when sw should w XXXX
+////3 blocks
+//+!checkObstacles(sw,s): obstacle(-1,1) & obstacle(0,1) & obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(s); !chooseAction(cl,s);.
+//+!checkObstacles(_,s): not obstacle(-1,1) & not obstacle(0,1) & not obstacle(1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(s); !chooseAction(mo,s);.
+//
+///* NW------>W */
+////1 block
+//+!checkObstacles(nw,w): obstacle(-1,-1) & not obstacle(-1,0) & not obstacle(-1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(n); -+extraAction(true); -+extraActionParams(mo,e); !chooseAction(mo,n);.//nw when sw should s XXXX
+//+!checkObstacles(nw,w): not obstacle(-1,-1) & obstacle(-1,0) & not obstacle(-1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(n); !chooseAction(mo,n);.//nw when sw should s XXXX
+//+!checkObstacles(nw,w): not obstacle(-1,-1) & not obstacle(-1,0) & obstacle(-1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(n); -+extraAction(true); -+extraActionParams(mo,w); !chooseAction(mo,n);.//nw when sw should s XXXX
+//
+////2 blocks
+//+!checkObstacles(nw,w): (obstacle(-1,-1) & obstacle(-1,0) & not obstacle(-1,1)) |
+//						(not obstacle(-1,-1) & obstacle(-1,0) & obstacle(-1,1)) |
+//						(obstacle(-1,-1) & not obstacle(-1,0) & obstacle(-1,1)) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(w); !chooseAction(cl,w);.//nw when sw should s XXXX
+////+!checkObstacles(nw,w): not obstacle(-1,-1) & obstacle(-1,0) & obstacle(-1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(n); !chooseAction(mo,n);.//nw when sw should s XXXX
+////+!checkObstacles(nw,w): obstacle(-1,-1) & not obstacle(-1,0) & obstacle(-1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(n); -+extraAction(true); -+extraActionParams(mo,e); !chooseAction(mo,n);.//nw when sw should s XXXX
+////3 blocks
+//+!checkObstacles(nw,w): obstacle(-1,-1) & obstacle(-1,0) & obstacle(-1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(w); !chooseAction(cl,w);.
+//
+///* SW------>W */
+////1 block
+//+!checkObstacles(sw,w): obstacle(-1,-1) & not obstacle(-1,0) & not obstacle(-1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(s); -+extraAction(true); -+extraActionParams(mo,w); !chooseAction(mo,s);.
+//+!checkObstacles(sw,w): not obstacle(-1,-1) & obstacle(-1,0) & not obstacle(-1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(s); !chooseAction(mo,s);.
+//+!checkObstacles(sw,w): not obstacle(-1,-1) & not obstacle(-1,0) & obstacle(-1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(s); -+extraAction(true); -+extraActionParams(mo,e); !chooseAction(mo,s);.
+//
+////2 blocks
+//+!checkObstacles(sw,w): (obstacle(-1,-1) & obstacle(-1,0) & not obstacle(-1,1)) |
+//						(not obstacle(-1,-1) & obstacle(-1,0) & obstacle(-1,1)) |
+//						(obstacle(-1,-1) & not obstacle(-1,0) & obstacle(-1,1)) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(w); !chooseAction(cl,w);.
+////+!checkObstacles(sw,w): not obstacle(-1,-1) & obstacle(-1,0) & obstacle(-1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(s); -+extraAction(true); -+extraActionParams(mo,e); !chooseAction(mo,s);.
+////+!checkObstacles(sw,w): obstacle(-1,-1) & not obstacle(-1,0) & obstacle(-1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(s); -+extraAction(true); -+extraActionParams(mo,e); !chooseAction(mo,s);.
+////3 blocks
+//+!checkObstacles(sw,w): obstacle(-1,-1) & obstacle(-1,0) & obstacle(-1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(w); !chooseAction(cl,w);.
+//+!checkObstacles(_,w): not obstacle(-1,-1) & not obstacle(-1,0) & not obstacle(-1,1) & extraAction(false) & (lastAction(no_action) | lastAction(move) | lastAction(skip) | lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(w); !chooseAction(mo,w);.
+
+//add lastAction(_) & lastActionResult(success) to all not x3
+//+!checkObstacles(se,s): lastAction(move) & lastActionResult(failed_path) <- !chooseAction(rt,cw);.
+//+!checkObstacles(se,e): lastAction(move) & lastActionResult(failed_path) <- !chooseAction(rt,ccw);.
+//+!checkObstacles(sw,s): lastAction(move) & lastActionResult(failed_path) <- !chooseAction(rt,ccw);.
+//+!checkObstacles(sw,w): lastAction(move) & lastActionResult(failed_path) <- !chooseAction(rt,cw);.
+//
+//+!checkObstacles(_,D): lastAction(rotate) & lastActionResult(success) <- !chooseAction(cl,D);.
++!checkObstacles(_,_): extraAction(true) <- ?extraActionParams(ACTION,DIR); /*-+currDir(D);*/ -+extraAction(false);  !chooseAction(ACTION,DIR);.
+/* N */
++!checkObstacles(_,n): 	( (obstacle(-2,0) & not obstacle(-1,-1) & not obstacle(0,-2) & not obstacle(1,-1) & not obstacle(2,0))
+						| (not obstacle(-2,0) & obstacle(-1,-1) & not obstacle(0,-2) & not obstacle(1,-1) & not obstacle(2,0)) 
+						| (obstacle(0,-2) & obstacle(-2,0)) | (obstacle(0,-2) & obstacle(-1,-1)) | (obstacle(-1,-1) & obstacle(-2,0)) 
+						| (obstacle(0,-2) & obstacle(-1,-1) & obstacle(-2,0)) ) & extraAction(false) 
+						<- -+currDir(e); -+extraAction(true); -+extraActionParams(mo,n); !chooseAction(mo,e);.
++!checkObstacles(_,n): 	( (not obstacle(-2,0) & not obstacle(-1,-1) & not obstacle(0,-2) & not obstacle(1,-1) & obstacle(2,0)) 
+						| (not obstacle(-2,0) & not obstacle(-1,-1) & not obstacle(0,-2) & obstacle(1,-1) & not obstacle(2,0))
+						| (obstacle(0,-2) & obstacle(2,0)) | (obstacle(0,-2) & obstacle(1,-1)) | (obstacle(1,-1) & obstacle(2,0)) 
+						| (obstacle(0,-2) & obstacle(1,-1) & obstacle(2,0)) ) & extraAction(false) 
+						<- -+currDir(w); -+extraAction(true); -+extraActionParams(mo,n); !chooseAction(mo,w);.
+//+!checkObstacles(ne,n): ( (obstacle(-2,0) & not obstacle(-1,-1) & not obstacle(0,-2) & not obstacle(1,-1) & not obstacle(2,0))
+//						| (not obstacle(-2,0) & obstacle(-1,-1) & not obstacle(0,-2) & not obstacle(1,-1) & not obstacle(2,0)) 
+//						) & extraAction(false)	 
+//						<- -+currDir(e); !chooseAction(mo,e);.
+//+!checkObstacles(nw,n): ( (not obstacle(-2,0) & not obstacle(-1,-1) & not obstacle(0,-2) & not obstacle(1,-1) & obstacle(2,0)) 
+//						| (not obstacle(-2,0) & not obstacle(-1,-1) & not obstacle(0,-2) & obstacle(1,-1) & not obstacle(2,0))
+//						 ) & extraAction(false)	
+//						<- -+currDir(w); !chooseAction(mo,w);.
++!checkObstacles(nw,n): (not obstacle(-2,0) & not obstacle(-1,-1) & obstacle(0,-2) & not obstacle(1,-1) & not obstacle(2,0)) & extraAction(false)
+						<- -+currDir(w); !chooseAction(mo,w);.
++!checkObstacles(ne,n): (not obstacle(-2,0) & not obstacle(-1,-1) & obstacle(0,-2) & not obstacle(1,-1) & not obstacle(2,0)) & extraAction(false)
+						<- -+currDir(e); !chooseAction(mo,e);.
++!checkObstacles(_,n): 	((not obstacle(-2,0) & obstacle(-1,-1) & obstacle(0,-2) & obstacle(1,-1) & not obstacle(2,0)) | 
+						(obstacle(-2,0) & obstacle(-1,-1) & obstacle(0,-2) & obstacle(1,-1) & obstacle(2,0))) & extraAction(false)	
+						<- -+currDir(s); -+extraAction(true); -+extraActionParams(cl,n); !chooseAction(mo,s);.
+						
+/* S */
++!checkObstacles(_,s): 	( (obstacle(-2,0) & not obstacle(-1,1) & not obstacle(0,2) & not obstacle(1,1) & not obstacle(2,0)) 
+						| (not obstacle(-2,0) & obstacle(-1,1) & not obstacle(0,2) & not obstacle(1,1) & not obstacle(2,0))
+						| (obstacle(-2,0) & obstacle(0,2)) | (obstacle(-2,0) & obstacle(-1,1)) | (obstacle(-1,1) & obstacle(0,2)) 
+						| (obstacle(-2,0) & obstacle(-1,1) & obstacle(0,2))) & extraAction(false)
+						<- -+currDir(e); -+extraAction(true); -+extraActionParams(mo,s); !chooseAction(mo,e);.
++!checkObstacles(_,s): 	( (not obstacle(-2,0) & not obstacle(-1,1) & not obstacle(0,2) & not obstacle(1,1) & obstacle(2,0)) 
+						| (not obstacle(-2,0) & not obstacle(-1,1) & not obstacle(0,2) & obstacle(1,1) & not obstacle(2,0))
+						| (obstacle(2,0) & obstacle(0,2)) | (obstacle(2,0) & obstacle(1,1)) | (obstacle(1,1) & obstacle(0,2)) 
+						| (obstacle(2,0) & obstacle(1,1) & obstacle(0,2))) & extraAction(false)
+						<- -+currDir(w); -+extraAction(true); -+extraActionParams(mo,s); !chooseAction(mo,w);.
+//+!checkObstacles(se,s): ( (obstacle(-2,0) & not obstacle(-1,1) & not obstacle(0,2) & not obstacle(1,1) & not obstacle(2,0)) 
+//						| (not obstacle(-2,0) & obstacle(-1,1) & not obstacle(0,2) & not obstacle(1,1) & not obstacle(2,0))
+//						| (not obstacle(-2,0) & not obstacle(-1,1) & obstacle(0,2) & not obstacle(1,1) & not obstacle(2,0)) ) & extraAction(false)
+//						<- -+currDir(e); !chooseAction(mo,e);.
+//+!checkObstacles(sw,s): ( (not obstacle(-2,0) & not obstacle(-1,1) & not obstacle(0,2) & not obstacle(1,1) & obstacle(2,0)) 
+//						| (not obstacle(-2,0) & not obstacle(-1,1) & not obstacle(0,2) & obstacle(1,1) & not obstacle(2,0))
+//						| (not obstacle(-2,0) & not obstacle(-1,1) & obstacle(0,2) & not obstacle(1,1) & not obstacle(2,0)) ) & extraAction(false)
++!checkObstacles(se,s): (not obstacle(-2,0) & not obstacle(-1,1) & obstacle(0,2) & not obstacle(1,1) & not obstacle(2,0)) & extraAction(false)
+						<- -+currDir(e); !chooseAction(mo,e);.
++!checkObstacles(sw,s): (not obstacle(-2,0) & not obstacle(-1,1) & obstacle(0,2) & not obstacle(1,1) & not obstacle(2,0)) & extraAction(false)
+						<- -+currDir(w); !chooseAction(mo,w);.
++!checkObstacles(_,s): 	((not obstacle(-2,0) & obstacle(-1,1) & obstacle(0,2) & obstacle(1,1) & not obstacle(2,0)) | 
+						(obstacle(-2,0) & obstacle(-1,1) & obstacle(0,2) & obstacle(1,1) & obstacle(2,0))) & extraAction(false)
+						<- -+currDir(n); -+extraAction(true); -+extraActionParams(cl,s); !chooseAction(mo,n);.
+/* E */
++!checkObstacles(_,e): 	( (obstacle(0,-2) & not obstacle(1,-1) & not obstacle(2,0) & not obstacle(1,1) & not obstacle(0,2)) 
+						| (not obstacle(0,-2) & obstacle(1,-1) & not obstacle(2,0) & not obstacle(1,1) & not obstacle(0,2))
+						| (obstacle(2,0) & obstacle(0,-2)) | (obstacle(2,0) & obstacle(1,-1)) | (obstacle(1,-1) & obstacle(0,-2)) 
+						| (obstacle(2,0) & obstacle(1,-1) & obstacle(0,-2))) & extraAction(false) 
+						<- -+currDir(s); -+extraAction(true); -+extraActionParams(mo,e); !chooseAction(mo,s);.
++!checkObstacles(_,e): 	( (not obstacle(0,-2) & not obstacle(1,-1) & not obstacle(2,0) & not obstacle(1,1) & obstacle(0,2)) 
+						| (not obstacle(0,-2) & not obstacle(1,-1) & not obstacle(2,0) & obstacle(1,1) & not obstacle(0,2))
+						| (obstacle(2,0) & obstacle(0,2)) | (obstacle(2,0) & obstacle(1,1)) 
+						| (obstacle(1,1) & obstacle(0,2)) | (obstacle(2,0) & obstacle(1,1) & obstacle(0,2))) & extraAction(false)
+						<- -+currDir(n); -+extraAction(true); -+extraActionParams(mo,e); !chooseAction(mo,n);.
+//+!checkObstacles(ne,e): ( (not obstacle(0,-2) & not obstacle(1,-1) & not obstacle(2,0) & not obstacle(1,1) & obstacle(0,2)) 
+//						| (not obstacle(0,-2) & not obstacle(1,-1) & not obstacle(2,0) & obstacle(1,1) & not obstacle(0,2))
+//						| (not obstacle(0,-2) & not obstacle(1,-1) & obstacle(2,0) & not obstacle(1,1) & not obstacle(0,2)) ) & extraAction(false)
+//						<- -+currDir(n); !chooseAction(mo,n);.
+//+!checkObstacles(se,e): ( (obstacle(0,-2) & not obstacle(1,-1) & not obstacle(2,0) & not obstacle(1,1) & not obstacle(0,2)) 
+//						| (not obstacle(0,-2) & obstacle(1,-1) & not obstacle(2,0) & not obstacle(1,1) & not obstacle(0,2))
+//						| (not obstacle(0,-2) & not obstacle(1,-1) & obstacle(2,0) & not obstacle(1,1) & not obstacle(0,2)) ) & extraAction(false)
+//						<- -+currDir(s); !chooseAction(mo,s);.
++!checkObstacles(ne,e): (not obstacle(0,-2) & not obstacle(1,-1) & obstacle(2,0) & not obstacle(1,1) & not obstacle(0,2)) & extraAction(false)
+						<- -+currDir(n); !chooseAction(mo,n);.
++!checkObstacles(se,e): (not obstacle(0,-2) & not obstacle(1,-1) & obstacle(2,0) & not obstacle(1,1) & not obstacle(0,2)) & extraAction(false)
+						<- -+currDir(s); !chooseAction(mo,s);.
++!checkObstacles(_,e): 	((not obstacle(0,-2) & obstacle(1,-1) & obstacle(2,0) & obstacle(1,1) & not obstacle(0,2)) | 
+						(obstacle(0,-2) & obstacle(1,-1) & obstacle(2,0) & obstacle(1,1) & obstacle(0,2))) & extraAction(false)	
+						<- -+currDir(w); -+extraAction(true); -+extraActionParams(cl,e); !chooseAction(mo,w);.
+/* W */					
++!checkObstacles(_,w): 	( (obstacle(0,-2) & not obstacle(-1,-1) & not obstacle(-2,0) & not obstacle(-1,1) & not obstacle(0,2)) 
+						| (not obstacle(0,-2) & obstacle(-1,-1) & not obstacle(-2,0) & not obstacle(-1,1) & not obstacle(0,2))
+						| (obstacle(-2,0) & obstacle(0,-2)) | (obstacle(-2,0) & obstacle(-1,-1)) | (obstacle(-1,-1) & obstacle(0,-2)) 
+						| (obstacle(-2,0) & obstacle(-1,-1) & obstacle(0,-2))) & extraAction(false)
+						<- -+currDir(s); -+extraAction(true); -+extraActionParams(mo,w); !chooseAction(mo,s);.
++!checkObstacles(_,w): 	( (not obstacle(0,-2) & not obstacle(-1,-1) & not obstacle(-2,0) & not obstacle(-1,1) & obstacle(0,2)) 
+						| (not obstacle(0,-2) & not obstacle(-1,-1) & not obstacle(-2,0) & obstacle(-1,1) & not obstacle(0,2))
+						| (obstacle(-2,0) & obstacle(0,2)) | (obstacle(-2,0) & obstacle(-1,1)) | (obstacle(-1,1) & obstacle(0,2)) 
+						| (obstacle(-2,0) & obstacle(-1,1) & obstacle(0,2))) & extraAction(false) 
+						<- -+currDir(n); -+extraAction(true); -+extraActionParams(mo,w); !chooseAction(mo,n);.
++!checkObstacles(nw,w): (not obstacle(0,-2) & not obstacle(-1,-1) & obstacle(-2,0) & not obstacle(-1,1) & not obstacle(0,2)) & extraAction(false)
+						<- -+currDir(n); !chooseAction(mo,n);.
++!checkObstacles(sw,w): (not obstacle(0,-2) & not obstacle(-1,-1) & obstacle(-2,0) & not obstacle(-1,1) & not obstacle(0,2)) & extraAction(false)
+						<- -+currDir(s); !chooseAction(mo,s);.
++!checkObstacles(_,w): 	((not obstacle(0,-2) & obstacle(-1,-1) & obstacle(-2,0) & obstacle(-1,1) & not obstacle(0,2)) | 
+						(obstacle(0,-2) & obstacle(-1,-1) & obstacle(-2,0) & obstacle(-1,1) & obstacle(0,2))) & extraAction(false)	
+						<- -+currDir(e); -+extraAction(true); -+extraActionParams(cl,w); !chooseAction(mo,e);.
+/* NO OBSTACLE */					
++!checkObstacles(_,n): 	not obstacle(0,-2) & not obstacle(1,-1) & not obstacle(2,0) & 
+						not obstacle(-2,0) & not obstacle(-1,-1) & extraAction(false) 	
+						<- -+currDir(n); !chooseAction(mo,n);.
++!checkObstacles(_,s): 	not obstacle(2,0) & not obstacle(1,1) & not obstacle(0,2) & 
+						not obstacle(-1,1) & not obstacle(-2,0) & extraAction(false) 	
+						<- -+currDir(s); !chooseAction(mo,s);.
++!checkObstacles(_,e): 	not obstacle(0,-2) & not obstacle(1,-1) & not obstacle(2,0) & 
+						not obstacle(1,1) & not obstacle(0,2) & extraAction(false) 	
+						<- -+currDir(e); !chooseAction(mo,e);.
++!checkObstacles(_,w): 	not obstacle(0,-2) & not obstacle(0,2) & not obstacle(-1,1) & 
+						not obstacle(-2,0) & not obstacle(-1,-1) & extraAction(false) 	
+						<- -+currDir(w); !chooseAction(mo,w);.
+
+/*END */
+
++!chooseAction(mo, D)	<- move(D);.
++!chooseAction(cl, n)	<- clear(0,-2);. 
++!chooseAction(cl, s)	<- clear(0,2);.
++!chooseAction(cl, e)	<- clear(2,0);.
++!chooseAction(cl, w)	<- clear(-2,0);. 
+//+!chooseAction(rt,RTD)	<- rotate(RTD);.
+
+/*thing(X,Y,entity,"A")[entity(agentA2), source(percept)] */
+/*attached(0,1)[entity(agent),source(percept)] */
+
+
 /* -----------------------------------STORE POIs----------------------------------- 
  *							Plans for saving POI positions */
 +!storeDispB0: thing(XB,YB,dispenser,b0)	<- ?position(XAg, YAg); -+newX(XAg+XB);-+newY(YAg+YB); !correctX; !correctY; 
@@ -454,65 +726,6 @@ desXY(0,0).
 +!checkAgent(s): thing(0,1,entity,_) | (thing(0,1,block,B) & thing(0,1,dispenser,B)) <- -+currDir(e);.
 +!checkAgent(n) <- -+currDir(n);.
 +!checkAgent(w) <- -+currDir(w);.
-/*START */
-//1,-1 ne //-1,-1 nw //1,1 se //-1,1 sw
-//ne & nw
-+!checkObstacles(_,n): not obstacle(1,-1) & not obstacle(-1,-1) & extraMoveAction(false) <- -+currDir(n);  !chooseAction(mo,n);.//XXXX
-+!checkObstacles(ne,n): not obstacle(1,-1) & obstacle(-1,-1) & extraMoveAction(false) <- -+currDir(e); -+extraMoveAction(true); -+extraMove(n); !chooseAction(mo,e);.//ne when nw should e XXXX
-+!checkObstacles(nw,n): not obstacle(1,-1) & obstacle(-1,-1) & extraMoveAction(false) <- -+currDir(s); -+extraMoveAction(true); -+extraMove(w); !chooseAction(mo,s);.
-+!checkObstacles(ne,n): obstacle(1,-1) & not obstacle(-1,-1) & extraMoveAction(false) <- -+currDir(s); -+extraMoveAction(true); -+extraMove(e); !chooseAction(mo,s);.//ne when nw should w XXXX
-+!checkObstacles(nw,n): obstacle(1,-1) & not obstacle(-1,-1) & extraMoveAction(false) <- -+currDir(w); -+extraMoveAction(true); -+extraMove(n);  !chooseAction(mo,w);.
-+!checkObstacles(ne,n): obstacle(1,-1) & obstacle(-1,-1) & extraMoveAction(false) <- -+currDir(s); -+extraMoveAction(true); -+extraMove(e); !chooseAction(mo,s);.//ne when nw should w XXXX
-+!checkObstacles(nw,n): obstacle(1,-1) & obstacle(-1,-1) & extraMoveAction(false) <- -+currDir(s); -+extraMoveAction(true); -+extraMove(w); !chooseAction(mo,s);.//ne when nw should w XXXX
-
-+!checkObstacles(_,_): extraMoveAction(true) <- ?extraMove(D); /*-+currDir(D);*/ -+extraMoveAction(false);  !chooseAction(mo,D);.
-////ne & se
-+!checkObstacles(_,e): not obstacle(1,-1) & not obstacle(1,1) & extraMoveAction(false) <- -+currDir(e); !chooseAction(mo,e);.
-+!checkObstacles(ne,e): not obstacle(1,-1) & obstacle(1,1) & extraMoveAction(false) <- -+currDir(n); -+extraMoveAction(true); -+extraMove(e); !chooseAction(mo,n);.//ne when se should s XXXX
-+!checkObstacles(se,e): not obstacle(1,-1) & obstacle(1,1) & extraMoveAction(false) <- -+currDir(w); -+extraMoveAction(true); -+extraMove(s); !chooseAction(mo,w);.
-+!checkObstacles(ne,e): obstacle(1,-1) & not obstacle(1,1) & extraMoveAction(false) <- -+currDir(s); -+extraMoveAction(true); -+extraMove(e); !chooseAction(mo,s);.//ne when se should n XXXX
-+!checkObstacles(se,e): obstacle(1,-1) & not obstacle(1,1) & extraMoveAction(false) <- -+currDir(s); -+extraMoveAction(true); -+extraMove(e); !chooseAction(mo,s);.
-+!checkObstacles(ne,e): obstacle(1,-1) & obstacle(1,1) & extraMoveAction(false) <- -+currDir(w); -+extraMoveAction(true); -+extraMove(n); !chooseAction(mo,w);. //ne when se should s XXXX
-+!checkObstacles(se,e): obstacle(1,-1) & obstacle(1,1) & extraMoveAction(false) <- -+currDir(w); -+extraMoveAction(true); -+extraMove(s); !chooseAction(mo,w);.
-
-////se & sw
-+!checkObstacles(_,s): not obstacle(1,1) & not obstacle(-1,1) & not obstacle(0,1) & extraMoveAction(false) <- -+currDir(s); !chooseAction(mo,s);.
-+!checkObstacles(se,s): not obstacle(1,1) & obstacle(-1,1) & not obstacle(0,1) & extraMoveAction(false) <- -+currDir(e); -+extraMoveAction(true); -+extraMove(s); !chooseAction(mo,e);.//se when sw should w XXXX
-+!checkObstacles(sw,s): not obstacle(1,1) & obstacle(-1,1) & not obstacle(0,1) & extraMoveAction(false) <- -+currDir(e); -+extraMoveAction(true); -+extraMove(s); !chooseAction(mo,e);.
-+!checkObstacles(se,s): obstacle(1,1) & not obstacle(-1,1) & not obstacle(0,1) & extraMoveAction(false) <- -+currDir(w); -+extraMoveAction(true); -+extraMove(s); !chooseAction(mo,w);.//se when sw should e XXXX
-+!checkObstacles(sw,s): obstacle(1,1) & not obstacle(-1,1) & not obstacle(0,1) & extraMoveAction(false) <- -+currDir(w); -+extraMoveAction(true); -+extraMove(s); !chooseAction(mo,w);.//se when sw should e XXXX
-+!checkObstacles(se,s): obstacle(1,1) & obstacle(-1,1) & not obstacle(0,1) & extraMoveAction(false) <- -+currDir(n); -+extraMoveAction(true); -+extraMove(e); !chooseAction(mo,n);.
-+!checkObstacles(sw,s): obstacle(1,1) & obstacle(-1,1) & not obstacle(0,1) & extraMoveAction(false) <- -+currDir(n); -+extraMoveAction(true); -+extraMove(w); !chooseAction(mo,n);.//se when sw should w XXXX
-+!checkObstacles(se,s): not obstacle(1,1) & not obstacle(-1,1) & obstacle(0,1) & extraMoveAction(false) <- -+currDir(w); !chooseAction(mo,w);.
-+!checkObstacles(sw,s): not obstacle(1,1) & not obstacle(-1,1) & obstacle(0,1) & extraMoveAction(false) <- -+currDir(e); !chooseAction(mo,e);.
-////nw & sw
-+!checkObstacles(_,w): not obstacle(-1,-1) & not obstacle(-1,1) & extraMoveAction(false) <- -+currDir(w); !chooseAction(mo,w);.
-+!checkObstacles(nw,w): not obstacle(-1,-1) & obstacle(-1,1) & extraMoveAction(false) <- -+currDir(e); -+extraMoveAction(true); -+extraMove(n); !chooseAction(mo,e);.//nw when sw should s XXXX
-+!checkObstacles(sw,w): not obstacle(-1,-1) & obstacle(-1,1) & extraMoveAction(false) <- -+currDir(e); -+extraMoveAction(true); -+extraMove(s); !chooseAction(mo,e);.
-+!checkObstacles(nw,w): obstacle(-1,-1) & not obstacle(-1,1) & extraMoveAction(false) <- -+currDir(e); -+extraMoveAction(true); -+extraMove(n); !chooseAction(mo,e);.//nw when sw should s XXXX
-+!checkObstacles(sw,w): obstacle(-1,-1) & not obstacle(-1,1) & extraMoveAction(false) <- -+currDir(s); -+extraMoveAction(true); -+extraMove(w); !chooseAction(mo,s);.
-+!checkObstacles(nw,w): obstacle(-1,-1) & obstacle(-1,1) & extraMoveAction(false) <- -+currDir(e); -+extraMoveAction(true); -+extraMove(w); !chooseAction(mo,e);.//nw when sw should s XXXX
-+!checkObstacles(sw,w): obstacle(-1,-1) & obstacle(-1,1) & extraMoveAction(false) <- -+currDir(e); -+extraMoveAction(true); -+extraMove(s); !chooseAction(mo,e);.
-/*END */
-+!chooseAction(mo, D) <- move(D);.
-+!chooseAction(cl, n) <- clear(0,-1);. 
-+!chooseAction(cl, s) <- clear(0,1);.
-+!chooseAction(cl, e) <- clear(1,0);.
-+!chooseAction(cl, w) <- clear(-1,0);. 
-
-/* oAo e.g try every direction(ne,se..) till one works, poss. problem: endless loop -> if ne is the solu. and e is blocked then try north first
- * ooo
-  */
-//+!checkLastAction(D): lastAction(move) & lastActionResult(failed_path) & lastActionParams([Dir]) <- !checkLastActionParams(Dir); .
-+!checkLastAction(D): (lastAction(move) | lastAction(submit) | lastAction(attach) | lastAction(no_action) 
-						| lastAction(skip)) & lastActionResult(success) <- -+currDir(D); .
-+!checkLastAction(D): lastAction(move) & lastActionResult(failed_path) <- !chooseAction(cl,D);.
-
-//+!checkLastAction(D): (lastAction(no_action) | lastAction(skip)) & lastActionResult(success) <- -+currDir(D);.
-//+!checkLastAction(D): (lastAction(submit) | lastAction(attach)) & lastActionResult(success) <- -+currDir(D);.
-//+!checkLastAction(D): lastAction(skip) & lastActionResult(success) <- -+currDir(D);.
-/*thing(X,Y,entity,"A")[entity(agentA2), source(percept)] */
-
 
 /*2 Blocks */
 //+!checkLastActionParams(n): obstacle(0,-1) & not obstacle(0,1) & not obstacle(1,0) & not obstacle(-1,0) <- -+currDir(e);.
@@ -527,7 +740,6 @@ desXY(0,0).
 //+!checkLastActionParams(s): obstacle(0,1) <- -+currDir(w);.
 //+!checkLastActionParams(e): obstacle(1,0) <- -+currDir(s);.
 //+!checkLastActionParams(w): obstacle(-1,0) <- -+currDir(n);.
-//[source(percept)]
 
 
 //if(AX>DX & AY>DY){-+nextDir(nw);}elif(AX<=DX & AY<=DY){-+nextDir(se);}elif(AX>DX & AY<=DY){-+nextDir(sw);}elif(AX<=DX & AY>DY){-+nextDir(ne);} 	XXXX6 4disp 2gl
