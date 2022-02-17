@@ -1,6 +1,6 @@
 {
   "scenario": "city2018",
-  "host": "localhost",
+  "host": "agentcontest2.in.tu-clausthal.de",
   "port": 12300,
   "scheduling": false,
   "timeout": 40000,
@@ -8,7 +8,20 @@
   "notifications": false,
   "queued": false,
   "entities": [
-    {"name": "agent1", "username": "agentA1", "password": "1", "iilang": false, "xml": false},
-  	{"name": "agent2", "username": "agentA2", "password": "1", "iilang": false, "xml": false}
+    {"name": "test1", "username": "ag-JNY1", "password": "1", "iilang": false, "xml": false},
+    {"name": "test2", "username": "ag-JNY2", "password": "1", "iilang": false, "xml": false},
+    {"name": "test3", "username": "ag-JNY3", "password": "1", "iilang": false, "xml": false},
+    {"name": "test4", "username": "ag-JNY4", "password": "1", "iilang": false, "xml": false},
+    {"name": "test5", "username": "ag-JNY5", "password": "1", "iilang": false, "xml": false},
+    {"name": "test6", "username": "ag-JNY6", "password": "1", "iilang": false, "xml": false},
+    {"name": "test7", "username": "ag-JNY7", "password": "1", "iilang": false, "xml": false},
+    {"name": "test8", "username": "ag-JNY8", "password": "1", "iilang": false, "xml": false},
+    {"name": "test9", "username": "ag-JNY9", "password": "1", "iilang": false, "xml": false},
+    {"name": "test10", "username": "ag-JNY10", "password": "1", "iilang": false, "xml": false},
+    {"name": "test11", "username": "ag-JNY11", "password": "1", "iilang": false, "xml": false},
+    {"name": "test12", "username": "ag-JNY12", "password": "1", "iilang": false, "xml": false},
+    {"name": "test13", "username": "ag-JNY13", "password": "1", "iilang": false, "xml": false},
+    {"name": "test14", "username": "ag-JNY14", "password": "1", "iilang": false, "xml": false},
+    {"name": "test15", "username": "ag-JNY15", "password": "1", "iilang": false, "xml": false}
   ]
 }

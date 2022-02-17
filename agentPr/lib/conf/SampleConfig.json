@@ -5,7 +5,7 @@
     "launch" : "key",
     "port" : 12300,
     "backlog" : 10000,
-    "agentTimeout" : 4000,
+    "agentTimeout" : 1000,
     "resultPath" : "results",
     "logLevel" : "normal",
     "logPath" : "logs",
@@ -27,7 +27,7 @@
       "steps" : 750,
       "randomSeed" : 17,
       "randomFail" : 0,
-      "entities" : {"standard" : 2},
+      "entities" : {"standard" : 15},
       "clusterBounds" : [2,3],
   
       "clearSteps" : 3,
@@ -52,7 +52,7 @@
       "dispensers" : [5, 10],
   
       "tasks" : {
-        "size" : [1, 1],
+        "size" : [2, 2],
         "duration" : [200, 200],
         "probability" : 0.05,
         "taskboards" : 3,
@@ -72,6 +72,6 @@
   ],
 
   "teams" : {
-    "A" : {"prefix" : "agent", "password" : "1"}
+    "A" : {"prefix" : "test_", "password" : "1"}
   }
 }
