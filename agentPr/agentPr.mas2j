@@ -3,12 +3,7 @@ MAS agentPr {
 	infrastructure: Centralised
 	environment: jason.eis.EISAdapter
 	agents:
-//		ag #15;
-//		ag ag-JNY1;
-//		mathTest;
 		test#15;
-//		testAgent#1;
-//		agent#2;
 		/* change # number
 		 * SC: change entities number
 		 * SC: entities number is per team
